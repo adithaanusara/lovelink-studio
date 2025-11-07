@@ -1,16 +1,18 @@
+import { emailSchema } from "@/lib/validation";
+import { readJson, invalidJsonResponse } from "@/lib/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 
 const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1)
+  email: emailSchema,
+  password: z.string().min(1).max(1024)
 });
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await readJson(request);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -41,6 +43,8 @@ export async function POST(request: Request) {
       user: { name: user.name, email: user.email }
     });
   } catch (error) {
+    const invalidJson = invalidJsonResponse(error);
+    if (invalidJson) return invalidJson;
     console.error("LOGIN_ERROR", error);
     return NextResponse.json({ error: "Login failed" }, { status: 500 });
   }
