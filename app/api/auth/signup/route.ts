@@ -1,17 +1,20 @@
+import { emailSchema, nameSchema, passwordSchema } from "@/lib/validation";
+import { readJson, invalidJsonResponse } from "@/lib/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 
 const schema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(6)
+  name: nameSchema,
+  email: emailSchema,
+  password: passwordSchema
 });
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await readJson(request);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -42,6 +45,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, user });
   } catch (error) {
+    const invalidJson = invalidJsonResponse(error);
+    if (invalidJson) return invalidJson;
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "Account already exists. Please login." }, { status: 409 });
+    }
     console.error("SIGNUP_ERROR", error);
     return NextResponse.json({ error: "Signup failed" }, { status: 500 });
   }
