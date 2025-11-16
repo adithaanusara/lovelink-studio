@@ -1,3 +1,5 @@
+import { emailSchema } from "@/lib/validation";
+import { readJson, invalidJsonResponse } from "@/lib/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -7,12 +9,12 @@ import { sendResetOtpEmail } from "@/lib/mailer";
 export const runtime = "nodejs";
 
 const schema = z.object({
-  email: z.string().email()
+  email: emailSchema
 });
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await readJson(request);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -52,8 +54,6 @@ export async function POST(request: Request) {
     const mailResult = await sendResetOtpEmail(email, otp);
 
     if (!mailResult.success) {
-      await prisma.passwordResetOtp.delete({ where: { id: record.id } });
-
       if (process.env.NODE_ENV !== "production") {
         return NextResponse.json({
           success: true,
@@ -62,6 +62,7 @@ export async function POST(request: Request) {
         });
       }
 
+      await prisma.passwordResetOtp.delete({ where: { id: record.id } });
       return NextResponse.json(
         { error: "Email service failed to send OTP." },
         { status: 500 }
@@ -73,6 +74,8 @@ export async function POST(request: Request) {
       message: "OTP sent to your email."
     });
   } catch (error) {
+    const invalidJson = invalidJsonResponse(error);
+    if (invalidJson) return invalidJson;
     console.error("FORGOT_PASSWORD_ERROR", error);
     return NextResponse.json(
       { error: "Failed to send OTP" },
