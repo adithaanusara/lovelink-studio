@@ -1,3 +1,5 @@
+import { emailSchema } from "@/lib/validation";
+import { readJson, invalidJsonResponse } from "@/lib/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -6,13 +8,13 @@ import { hashOtpCode } from "@/lib/otp";
 export const runtime = "nodejs";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: emailSchema,
   otp: z.string().regex(/^\d{6}$/)
 });
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await readJson(request);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -80,13 +82,9 @@ export async function POST(request: Request) {
     const matches = record.codeHash === hashOtpCode(otp);
 
     if (!matches) {
-      await prisma.passwordResetOtp.update({
-        where: { id: record.id },
-        data: {
-          attempts: {
-            increment: 1
-          }
-        }
+      await prisma.passwordResetOtp.updateMany({
+        where: { id: record.id, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: 5 } },
+        data: { attempts: { increment: 1 } }
       });
 
       return NextResponse.json(
@@ -103,6 +101,8 @@ export async function POST(request: Request) {
       message: "OTP verified successfully."
     });
   } catch (error) {
+    const invalidJson = invalidJsonResponse(error);
+    if (invalidJson) return invalidJson;
     console.error("VERIFY_OTP_ERROR", error);
 
     return NextResponse.json(
