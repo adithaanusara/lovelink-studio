@@ -1,3 +1,5 @@
+import { emailSchema, passwordSchema } from "@/lib/validation";
+import { readJson, invalidJsonResponse } from "@/lib/api";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -7,15 +9,15 @@ import { hashPassword } from "@/lib/password";
 export const runtime = "nodejs";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: emailSchema,
   otp: z.string().regex(/^\d{6}$/),
-  newPassword: z.string().min(6),
-  confirmPassword: z.string().min(6)
+  newPassword: passwordSchema,
+  confirmPassword: passwordSchema
 });
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await readJson(request);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -92,13 +94,9 @@ export async function POST(request: Request) {
     const matches = record.codeHash === hashOtpCode(otp);
 
     if (!matches) {
-      await prisma.passwordResetOtp.update({
-        where: { id: record.id },
-        data: {
-          attempts: {
-            increment: 1
-          }
-        }
+      await prisma.passwordResetOtp.updateMany({
+        where: { id: record.id, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: 5 } },
+        data: { attempts: { increment: 1 } }
       });
 
       return NextResponse.json(
@@ -109,26 +107,35 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(newPassword);
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash }
+    const reset = await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const claimed = await tx.passwordResetOtp.updateMany({
+        where: { id: record.id, consumedAt: null, expiresAt: { gt: now }, attempts: { lt: 5 } },
+        data: { consumedAt: now }
+      });
+      if (claimed.count !== 1) return false;
+      await tx.user.update({ where: { id: user.id }, data: { passwordHash } });
+      await tx.passwordResetOtp.updateMany({
+        where: { userId: user.id, consumedAt: null },
+        data: { consumedAt: now }
+      });
+      await tx.passwordResetToken.updateMany({
+        where: { userId: user.id, consumedAt: null },
+        data: { consumedAt: now }
+      });
+      return true;
     });
-
-    await prisma.passwordResetOtp.updateMany({
-      where: {
-        userId: user.id,
-        consumedAt: null
-      },
-      data: {
-        consumedAt: new Date()
-      }
-    });
+    if (!reset) {
+      return NextResponse.json({ error: "OTP expired or already used. Request a new code." }, { status: 400 });
+    }
 
     return NextResponse.json({
       success: true,
       message: "Password reset successfully. Please login with your new password."
     });
   } catch (error) {
+    const invalidJson = invalidJsonResponse(error);
+    if (invalidJson) return invalidJson;
     console.error("RESET_PASSWORD_ERROR", error);
 
     return NextResponse.json(
