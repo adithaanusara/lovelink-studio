@@ -1,32 +1,14 @@
+import { readJson, invalidJsonResponse } from "@/lib/api";
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { Prisma } from "@prisma/client";
+import { memorySchema } from "@/lib/validation";
 import { prisma } from "@/lib/prisma";
 import { createSlug } from "@/lib/utils";
-
-const memorySchema = z.object({
-  title: z.string().min(1),
-  recipient: z.string().min(1),
-  sender: z.string().min(1),
-  occasion: z.string().min(1),
-  message: z.string().min(1),
-  accentText: z.string().optional().nullable(),
-  musicUrl: z.string().optional().nullable(),
-  eventDate: z.string().optional().nullable(),
-  theme: z.string(),
-  coverImage: z.string().url(),
-  customSlugBase: z.string().min(1).optional(),
-  gallery: z.array(
-    z.object({
-      imageUrl: z.string().url(),
-      altText: z.string().optional().nullable()
-    })
-  ),
-  layoutJson: z.any().optional()
-});
+import { randomUUID } from "node:crypto";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await readJson(request);
     const parsed = memorySchema.safeParse(body);
 
     if (!parsed.success) {
@@ -38,48 +20,60 @@ export async function POST(request: Request) {
 
     const data = parsed.data;
 
-    const baseSlug = createSlug(
+    const requestedSlug = createSlug(
       data.customSlugBase ||
         `${data.recipient}-${data.occasion}-from-${data.sender}`
     );
 
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await prisma.memoryProject.findUnique({ where: { slug } })) {
-      slug = `${baseSlug}-${counter}`;
-      counter += 1;
+    const reserved = new Set(["api", "create", "login", "signup", "favicon", "icon"]);
+    const baseSlug = !requestedSlug ? `memory-${randomUUID().slice(0, 8)}`
+      : reserved.has(requestedSlug) ? `memory-${requestedSlug}` : requestedSlug.slice(0, 180).replace(/-+$/, "");
+    const configuredUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    const appUrl = new URL(configuredUrl || new URL(request.url).origin);
+    if (!["http:", "https:"].includes(appUrl.protocol)) {
+      throw new Error("Invalid application URL configuration");
     }
 
-    const project = await prisma.memoryProject.create({
-      data: {
-        slug,
-        title: data.title,
-        recipient: data.recipient,
-        sender: data.sender,
-        occasion: data.occasion,
-        message: data.message,
-        accentText: data.accentText || null,
-        musicUrl: data.musicUrl || null,
-        eventDate: data.eventDate ? new Date(data.eventDate) : null,
-        theme: data.theme,
-        coverImage: data.coverImage,
-        layoutJson: data.layoutJson ?? null,
-        gallery: {
-          create: data.gallery.map((item, index) => ({
-            imageUrl: item.imageUrl,
-            altText: item.altText || null,
-            sortOrder: index
-          }))
-        }
-      }
-    });
+    // Let the unique constraint arbitrate simultaneous requests for the same URL.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const slug = attempt === 0 ? baseSlug : `${baseSlug}-${randomUUID().slice(0, 8)}`;
+      try {
+            const project = await prisma.memoryProject.create({
+              data: {
+                slug,
+                title: data.title,
+                recipient: data.recipient,
+                sender: data.sender,
+                occasion: data.occasion,
+                message: data.message,
+                accentText: data.accentText || null,
+                musicUrl: data.musicUrl || null,
+                eventDate: data.eventDate ? new Date(data.eventDate) : null,
+                theme: data.theme,
+                coverImage: data.coverImage,
+                layoutJson: data.layoutJson == null ? Prisma.DbNull : data.layoutJson as Prisma.InputJsonObject,
+                gallery: {
+                  create: data.gallery.map((item, index) => ({
+                    imageUrl: item.imageUrl,
+                    altText: item.altText || null,
+                    sortOrder: index
+                  }))
+                }
+              }
+            });
 
-    return NextResponse.json({
-      success: true,
-      shareUrl: `${process.env.NEXT_PUBLIC_APP_URL}/${project.slug}`
-    });
+            return NextResponse.json({
+              success: true,
+              shareUrl: new URL(`/${project.slug}`, appUrl).toString()
+            }, { status: 201 });
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+      }
+    }
+    return NextResponse.json({ error: "Could not allocate a share URL. Please retry." }, { status: 409 });
   } catch (error) {
+    const invalidJson = invalidJsonResponse(error);
+    if (invalidJson) return invalidJson;
     console.error(error);
     return NextResponse.json(
       { error: "Failed to publish page" },
