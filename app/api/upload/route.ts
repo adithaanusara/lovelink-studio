@@ -1,22 +1,26 @@
 import { NextResponse } from "next/server";
 import { Readable } from "stream";
+import type { UploadApiResponse } from "cloudinary";
 import cloudinary from "@/lib/cloudinary";
 
 export async function POST(request: Request) {
   try {
-    const data = await request.formData();
-    const file = data.get("file") as File | null;
+    let data: FormData;
+    try {
+      data = await request.formData();
+    } catch {
+      return NextResponse.json({ error: "Use multipart form data." }, { status: 400 });
+    }
+    const file = data.get("file");
 
-    if (!file) {
+    if (!(file instanceof File) || file.size === 0) {
       return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
     }
 
-    // add this new one
     const mime = file.type || "";
     const isImage = mime.startsWith("image/");
     const isVideo = mime.startsWith("video/");
 
-    // add this new one
     if (!isImage && !isVideo) {
       return NextResponse.json(
         { error: "Only image and video files are allowed." },
@@ -24,7 +28,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // add this new one
     const maxFileSize = 15 * 1024 * 1024; // 15MB
     if (file.size > maxFileSize) {
       return NextResponse.json(
@@ -36,8 +39,7 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // add this new one
-    const uploadResult = await new Promise<any>((resolve, reject) => {
+    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: "lovelink-studio",
@@ -48,11 +50,16 @@ export async function POST(request: Request) {
             reject(error);
             return;
           }
+          if (!result) {
+            reject(new Error("Cloudinary returned no upload result."));
+            return;
+          }
           resolve(result);
         }
       );
 
-      Readable.from(buffer).pipe(uploadStream);
+      uploadStream.on("error", reject);
+      Readable.from(buffer).on("error", reject).pipe(uploadStream);
     });
 
     let poster: string | undefined;
@@ -70,15 +77,9 @@ export async function POST(request: Request) {
       resourceType: isVideo ? "video" : "image",
       poster
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("UPLOAD_ERROR", error);
 
-    // add this new one
-    const message =
-      error?.message ||
-      error?.error?.message ||
-      "Media upload failed.";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Media upload failed. Please try again." }, { status: 500 });
   }
 }
