@@ -10,8 +10,8 @@ export async function hashPassword(password: string) {
 }
 
 export async function verifyPassword(password: string, storedHash: string) {
+  if (!/^[a-f0-9]{32}:[a-f0-9]{128}$/i.test(storedHash)) return false;
   const [salt, hash] = storedHash.split(":");
-  if (!salt || !hash) return false;
 
   const derived = (await scrypt(password, salt, 64)) as Buffer;
   const hashBuffer = Buffer.from(hash, "hex");
