@@ -1,3 +1,5 @@
+import { getSession, signOut } from "next-auth/react";
+
 const SESSION_KEY = "lovelink_session";
 
 function normalizeEmail(value: string) {
@@ -6,16 +8,39 @@ function normalizeEmail(value: string) {
 
 export function getSessionEmail() {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(SESSION_KEY);
+  try {
+    return window.localStorage.getItem(SESSION_KEY);
+  } catch {
+    return null;
+  }
 }
 
 export function isLoggedIn() {
   return Boolean(getSessionEmail());
 }
 
-export function logout() {
+export async function getAccountEmail() {
+  const email = getSessionEmail();
+  if (email) return email;
+  try {
+    const session = await getSession();
+    return session?.user?.email || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function logout() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(SESSION_KEY);
+  try {
+    // End the OAuth session before reporting a successful logout.
+    const session = await getSession();
+    if (session) await signOut({ redirect: false });
+  } catch {
+    throw new Error("Could not log out. Please try again.");
+  }
+  try { window.localStorage.removeItem(SESSION_KEY); } catch { /* Storage may be disabled. */ }
+  window.dispatchEvent(new Event("lovelink-session-change"));
 }
 
 type AuthSuccess = { success: true };
@@ -23,29 +48,38 @@ type AuthFailure = { success: false; message: string };
 
 function setSession(email: string) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(SESSION_KEY, normalizeEmail(email));
+  try {
+    window.localStorage.setItem(SESSION_KEY, normalizeEmail(email));
+  } catch {
+    throw new Error("Please allow browser storage to sign in.");
+  }
+  window.dispatchEvent(new Event("lovelink-session-change"));
 }
 
 async function requestJson<T>(url: string, payload: Record<string, unknown>) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-  const data = await response.json().catch(() => null);
+    const data = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    return {
-      ok: false as const,
-      message: data?.error || "Request failed"
-    };
+    if (!response.ok) {
+      return {
+        ok: false as const,
+        message: data?.error || "Request failed"
+      };
+    }
+
+    if (!data || data.success !== true) {
+      return { ok: false as const, message: "Unexpected server response. Please try again." };
+    }
+    return { ok: true as const, data: data as T };
+  } catch {
+    return { ok: false as const, message: "Could not connect. Please check your connection and try again." };
   }
-
-  return {
-    ok: true as const,
-    data: data as T
-  };
 }
 
 export async function signupAccount(
@@ -55,7 +89,7 @@ export async function signupAccount(
 ): Promise<AuthSuccess | AuthFailure> {
   const cleanName = name.trim();
   const cleanEmail = normalizeEmail(email);
-  const cleanPassword = password.trim();
+  const cleanPassword = password;
 
   if (!cleanName || !cleanEmail || !cleanPassword) {
     return { success: false, message: "Please fill all fields." };
@@ -71,7 +105,11 @@ export async function signupAccount(
     return { success: false, message: response.message };
   }
 
-  setSession(cleanEmail);
+  try {
+    setSession(cleanEmail);
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Could not save session." };
+  }
 
   return { success: true as const };
 }
@@ -81,7 +119,7 @@ export async function loginAccount(
   password: string
 ): Promise<AuthSuccess | AuthFailure> {
   const cleanEmail = normalizeEmail(email);
-  const cleanPassword = password.trim();
+  const cleanPassword = password;
 
   if (!cleanEmail || !cleanPassword) {
     return { success: false, message: "Please enter email and password." };
@@ -96,7 +134,11 @@ export async function loginAccount(
     return { success: false, message: response.message };
   }
 
-  setSession(cleanEmail);
+  try {
+    setSession(cleanEmail);
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Could not save session." };
+  }
   return { success: true as const };
 }
 
@@ -157,8 +199,8 @@ export async function resetForgotPassword(
 ) {
   const cleanEmail = normalizeEmail(email);
   const cleanOtp = otp.trim();
-  const cleanPassword = newPassword.trim();
-  const cleanConfirmPassword = confirmPassword.trim();
+  const cleanPassword = newPassword;
+  const cleanConfirmPassword = confirmPassword;
 
   if (!cleanEmail || !cleanOtp || !cleanPassword || !cleanConfirmPassword) {
     return {
