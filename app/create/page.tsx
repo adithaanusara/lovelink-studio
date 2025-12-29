@@ -3,19 +3,25 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdvancedCreateForm } from "../../components/AdvancedCreateForm";
-import { isLoggedIn } from "@/lib/auth-client";
+import { getAccountEmail } from "@/lib/auth-client";
 
 export default function CreatePage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!isLoggedIn()) {
-      router.replace("/login?next=/create");
-      return;
-    }
-
-    setReady(true);
+    let cancelled = false;
+    const check = async () => {
+      const email = await getAccountEmail();
+      if (cancelled) return;
+      if (!email) {
+        router.replace("/login?next=/create");
+        return;
+      }
+      setReady(true);
+    };
+    void check();
+    return () => { cancelled = true; };
   }, [router]);
 
   if (!ready) {
