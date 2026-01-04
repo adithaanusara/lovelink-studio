@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, Menu, Sparkles, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { getSessionEmail, isLoggedIn, logout } from "@/lib/auth-client";
+import { getAccountEmail, logout } from "@/lib/auth-client";
 
 const links = [
   { href: "/#features", label: "Features" },
@@ -15,6 +15,9 @@ const links = [
 
 export function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
+  const [logoutError, setLogoutError] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [mounted, setMounted] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -23,9 +26,22 @@ export function Navbar() {
 
   useEffect(() => {
     setMounted(true);
-    setLoggedIn(isLoggedIn());
-    setEmail(getSessionEmail());
-  }, []);
+    let cancelled = false;
+    const refresh = async () => {
+      const nextEmail = await getAccountEmail();
+      if (!cancelled) { setLoggedIn(Boolean(nextEmail)); setEmail(nextEmail); }
+    };
+    void refresh();
+    window.addEventListener("storage", refresh);
+    window.addEventListener("lovelink-session-change", refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("lovelink-session-change", refresh);
+    };
+  }, [pathname]);
+
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -49,8 +65,16 @@ export function Navbar() {
     };
   }, [menuOpen]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError("");
+    try { await logout(); } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : "Could not log out.");
+      setLoggingOut(false);
+      return;
+    }
+    setLoggingOut(false);
     setLoggedIn(false);
     setEmail(null);
     setMenuOpen(false);
@@ -91,7 +115,7 @@ export function Navbar() {
 
               <button
                 type="button"
-                onClick={handleLogout}
+                disabled={loggingOut} onClick={() => void handleLogout()}
                 className="btn btn-ghost hidden md:inline-flex"
               >
                 Log out
@@ -128,6 +152,7 @@ export function Navbar() {
         </div>
       </div>
 
+      {logoutError ? <p role="alert" className="notice notice-error">{logoutError}</p> : null}
       <AnimatePresence>
         {menuOpen ? (
           <>
@@ -178,7 +203,7 @@ export function Navbar() {
                         Start creating
                       </Link>
 
-                      <button type="button" onClick={handleLogout} className="btn btn-secondary btn-lg">
+                      <button type="button" disabled={loggingOut} onClick={() => void handleLogout()} className="btn btn-secondary btn-lg">
                         <LogOut className="h-4 w-4" />
                         Log out
                       </button>
