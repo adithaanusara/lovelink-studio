@@ -4,12 +4,13 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useEffect, useState } from "react";
+import { safeNextPath } from "@/lib/navigation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthTiltCard } from "@/components/AuthTiltCard";
 import { GoogleIcon } from "@/components/GoogleIcon";
 import { PasswordInput } from "@/components/PasswordInput";
 import {
-  isLoggedIn,
+  getAccountEmail,
   loginAccount,
   requestForgotPasswordOtp,
   resetForgotPassword,
@@ -42,12 +43,14 @@ function LoginContent() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const nextPath = searchParams.get("next") || "/create";
+  const nextPath = safeNextPath(searchParams.get("next"));
 
   useEffect(() => {
-    if (isLoggedIn()) {
-      router.replace(nextPath);
-    }
+    let cancelled = false;
+    void getAccountEmail().then((email) => {
+      if (email && !cancelled) router.replace(nextPath);
+    });
+    return () => { cancelled = true; };
   }, [nextPath, router]);
 
   const resetForgotState = () => {
@@ -62,6 +65,7 @@ function LoginContent() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
 
     setError("");
     setSuccessMessage("");
@@ -79,6 +83,7 @@ function LoginContent() {
   };
 
   const handleRequestOtp = async () => {
+    if (otpLoading) return;
     setOtpError("");
     setOtpMessage("");
     setDevOtpPreview("");
@@ -106,6 +111,7 @@ function LoginContent() {
   };
 
   const handleVerifyOtp = async () => {
+    if (otpLoading) return;
     setOtpError("");
     setOtpMessage("");
     setSuccessMessage("");
@@ -125,6 +131,7 @@ function LoginContent() {
   };
 
   const handleResetPassword = async () => {
+    if (otpLoading) return;
     setOtpError("");
     setOtpMessage("");
     setSuccessMessage("");
@@ -201,6 +208,7 @@ function LoginContent() {
               <input
                 type="email"
                 name="email"
+                required
                 autoComplete="email"
                 inputMode="email"
                 value={otpEmail}
@@ -229,6 +237,8 @@ function LoginContent() {
                   <input
                     type="text"
                     name="otp"
+                    required
+                    pattern="[0-9]{6}"
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     maxLength={6}
@@ -269,6 +279,9 @@ function LoginContent() {
 
                   <PasswordInput
                     name="new-password"
+                    required
+                    minLength={6}
+                    maxLength={1024}
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
@@ -281,6 +294,9 @@ function LoginContent() {
 
                   <PasswordInput
                     name="confirm-password"
+                    required
+                    minLength={6}
+                    maxLength={1024}
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
@@ -317,6 +333,7 @@ function LoginContent() {
 
           <button
             type="button"
+            disabled={otpLoading}
             onClick={() => {
               setShowForgotPassword(false);
               resetForgotState();
@@ -336,6 +353,7 @@ function LoginContent() {
               <input
                 type="email"
                 name="email"
+                required
                 autoComplete="email"
                 inputMode="email"
                 placeholder="Enter your email"
@@ -350,6 +368,8 @@ function LoginContent() {
 
               <PasswordInput
                 name="password"
+                required
+                maxLength={1024}
                 autoComplete="current-password"
                 placeholder="Enter your password"
                 value={password}
@@ -358,14 +378,6 @@ function LoginContent() {
             </label>
 
             <div className="flex flex-wrap items-center justify-between gap-x-3 text-sm">
-              <label className="flex min-h-[44px] items-center gap-2 font-medium text-slate-600">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 accent-violet-600"
-                />
-                Remember me
-              </label>
-
               <button
                 type="button"
                 onClick={() => {
@@ -405,7 +417,7 @@ function LoginContent() {
           <button
             type="button"
             onClick={() => {
-              void signIn("google", { callbackUrl: "/create" });
+              void signIn("google", { callbackUrl: nextPath });
             }}
             className="btn btn-secondary w-full rounded-xl"
           >
@@ -416,7 +428,7 @@ function LoginContent() {
           <p className="mt-6 text-center text-sm font-medium text-slate-500">
             Don&apos;t have an account?{" "}
             <Link
-              href="/signup"
+              href={`/signup?next=${encodeURIComponent(nextPath)}`}
               className="-my-3 inline-block py-3 font-black text-slate-950 transition hover:text-violet-700"
             >
               Sign up
