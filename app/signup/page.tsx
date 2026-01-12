@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { FormEvent, Suspense, useEffect, useState } from "react";
+import { safeNextPath } from "@/lib/navigation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { AuthTiltCard } from "@/components/AuthTiltCard";
 import { GoogleIcon } from "@/components/GoogleIcon";
 import { PasswordInput } from "@/components/PasswordInput";
-import { isLoggedIn, signupAccount } from "@/lib/auth-client";
+import { getAccountEmail, signupAccount } from "@/lib/auth-client";
 
 function SignupContent() {
   const router = useRouter();
@@ -20,16 +21,19 @@ function SignupContent() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const nextPath = searchParams.get("next") || "/create";
+  const nextPath = safeNextPath(searchParams.get("next"));
 
   useEffect(() => {
-    if (isLoggedIn()) {
-      router.replace(nextPath);
-    }
+    let cancelled = false;
+    void getAccountEmail().then((email) => {
+      if (email && !cancelled) router.replace(nextPath);
+    });
+    return () => { cancelled = true; };
   }, [nextPath, router]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
 
     setError("");
     setIsSubmitting(true);
@@ -59,6 +63,8 @@ function SignupContent() {
           <input
             type="text"
             name="name"
+            required
+            maxLength={200}
             autoComplete="name"
             placeholder="Enter your name"
             value={name}
@@ -72,6 +78,7 @@ function SignupContent() {
           <input
             type="email"
             name="email"
+            required
             autoComplete="email"
             inputMode="email"
             placeholder="Enter your email"
@@ -85,6 +92,9 @@ function SignupContent() {
           <span className="field-label">Password</span>
           <PasswordInput
             name="password"
+            required
+            maxLength={1024}
+            minLength={6}
             autoComplete="new-password"
             placeholder="Create a strong password"
             value={password}
@@ -114,7 +124,7 @@ function SignupContent() {
       <button
         type="button"
         onClick={() => {
-          void signIn("google", { callbackUrl: "/create" });
+          void signIn("google", { callbackUrl: nextPath });
         }}
         className="btn btn-secondary w-full rounded-xl"
       >
@@ -125,7 +135,7 @@ function SignupContent() {
       <p className="mt-6 text-center text-sm font-medium text-slate-500">
         Already have an account?{" "}
         <Link
-          href="/login"
+          href={`/login?next=${encodeURIComponent(nextPath)}`}
           className="-my-3 inline-block py-3 font-black text-slate-950 transition hover:text-violet-700"
         >
           Login
