@@ -23,9 +23,9 @@ export function MemoryCard({
   eventDate
 }: MemoryCardProps) {
   return (
-    <Link href={`/p/${slug}`} className="group block">
-      <div className={`relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br ${getThemeClasses(theme)} p-3 transition duration-300 hover:-translate-y-1`}>
-        <div className="overflow-hidden rounded-[1.5rem] border border-white/10">
+    <Link href={`/${encodeURIComponent(slug)}`} className="group block">
+      <div className={`relative overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br ${getThemeClasses(theme)} p-3 transition duration-300 hover:-translate-y-1`}>
+        <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
           <img
             src={coverImage}
             alt={title}
@@ -33,13 +33,13 @@ export function MemoryCard({
           />
         </div>
         <div className="space-y-3 p-4">
-          <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-300">
+          <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
             <span>{occasion}</span>
             <span>{formatDate(eventDate)}</span>
           </div>
           <div>
-            <h3 className="text-2xl font-bold text-white">{title}</h3>
-            <p className="mt-2 text-sm leading-7 text-slate-200">
+            <h3 className="text-2xl font-bold text-slate-900">{title}</h3>
+            <p className="mt-2 text-sm leading-7 text-slate-700">
               For {recipient} • By {sender}
             </p>
           </div>
