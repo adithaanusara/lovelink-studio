@@ -17,9 +17,12 @@ export function getThemeClasses(theme: string) {
 
 export function formatDate(dateString?: string | null) {
   if (!dateString) return "";
-  return new Date(dateString).toLocaleDateString("en-US", {
+  const date = new Date(dateString);
+  if (!Number.isFinite(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
-    year: "numeric"
+    year: "numeric",
+    timeZone: "UTC"
   });
 }
