@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Music4 } from "lucide-react";
 import { StorySceneViewer } from "@/components/StorySceneViewer";
+import { layoutSchema } from "@/lib/validation";
 import { BookPageMedia } from "@/components/MemoryBook";
 
 type AnimationType =
@@ -63,7 +64,8 @@ export default async function MemoryPage({
 
   if (!project) notFound();
 
-  const layout = project.layoutJson as
+  const parsedLayout = layoutSchema.safeParse(project.layoutJson);
+  const layout = (parsedLayout.success ? parsedLayout.data : null) as
     | {
         animation?: AnimationType;
         storyScenes?: StoryScene[];
@@ -81,9 +83,14 @@ export default async function MemoryPage({
         <StorySceneViewer scenes={storyScenes} animation={animation} />
       ) : (
         <section className="mx-auto flex min-h-screen max-w-[1400px] items-center justify-center px-4 text-center">
-          <div className="surface p-8 text-slate-700 sm:p-10">
-            This page has no scene data.
-          </div>
+          <article className="surface w-full max-w-3xl overflow-hidden p-6 text-slate-700 sm:p-10">
+            <img src={project.coverImage} alt={project.title} className="mb-6 max-h-[60vh] w-full rounded-2xl object-cover" />
+            <p className="eyebrow">{project.occasion}</p>
+            <h1 className="mt-3 break-words text-3xl font-bold text-slate-900">{project.title}</h1>
+            <p className="mt-3">For {project.recipient}, from {project.sender}</p>
+            <p className="mt-6 whitespace-pre-wrap break-words">{project.message}</p>
+            {project.accentText ? <p className="mt-4 italic">{project.accentText}</p> : null}
+          </article>
         </section>
       )}
 
