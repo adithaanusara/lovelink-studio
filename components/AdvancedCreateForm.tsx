@@ -538,6 +538,11 @@ export function AdvancedCreateForm() {
   };
 
   const handlePublish = async () => {
+    if (saving) return;
+    if (uploads > 0) {
+      setError("Wait for all uploads to finish before publishing.");
+      return;
+    }
     setError("");
     setShareUrl("");
     setCopied(false);
@@ -608,10 +613,10 @@ export function AdvancedCreateForm() {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
-      if (!response.ok) {
-        throw new Error(data.error || "Publish failed");
+      if (!response.ok || typeof data?.shareUrl !== "string") {
+        throw new Error(data?.error || "Publish failed. Please try again.");
       }
 
       setShareUrl(data.shareUrl);
@@ -702,7 +707,7 @@ export function AdvancedCreateForm() {
             <button
               type="button"
               onClick={handlePublish}
-              disabled={saving}
+              disabled={saving || uploads > 0}
               className="btn btn-primary px-4 sm:px-5"
             >
               <Send className="h-4 w-4" />
