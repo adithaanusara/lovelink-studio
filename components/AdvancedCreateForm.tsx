@@ -67,7 +67,7 @@ async function uploadMedia(file: File) {
 
   const data = await response.json().catch(() => null);
 
-  if (!response.ok) {
+  if (!response.ok || typeof data?.url !== "string" || !["image", "video"].includes(data?.resourceType)) {
     throw new Error(data?.error || "Media upload failed");
   }
 
@@ -379,6 +379,10 @@ export function AdvancedCreateForm() {
 
   const handleSceneBackgroundUpload = async (file: File) => {
     const result = await uploadWithProgress(file);
+    if (result.resourceType !== "image") {
+      setError("Only images can be used as a scene background.");
+      return;
+    }
 
     updateScenes((current) =>
       current.map((scene, index) =>
@@ -405,7 +409,9 @@ export function AdvancedCreateForm() {
       return;
     }
 
-    updateItem(imageId, { src: result.url });
+    updateScenes((current) => current.map((scene) => scene.id === activeScene.id
+      ? { ...scene, items: scene.items.map((item) => item.id === imageId ? { ...item, src: result.url } : item) }
+      : scene));
     setError("");
   };
 
@@ -446,23 +452,14 @@ export function AdvancedCreateForm() {
 
     if (!activeScene.book.pages[pageIndex]) return;
 
-    const nextPages = [...activeScene.book.pages];
-    const targetPage = nextPages[pageIndex];
-
-    nextPages[pageIndex] = {
-      ...targetPage,
-      slots: targetPage.slots.map((slot, index) =>
-        index === slotIndex
-          ? {
-              type: result.resourceType === "video" ? "video" : "image",
-              url: result.url,
-              poster: result.poster,
-            }
-          : slot,
-      ),
-    };
-
-    updateActiveBook({ pages: nextPages });
+    updateScenes((current) => current.map((scene) => {
+      if (scene.id !== activeScene.id || !scene.book) return scene;
+      return { ...scene, book: { ...scene.book, pages: scene.book.pages.map((page, index) =>
+        index !== pageIndex ? page : { ...page, slots: page.slots.map((slot, index) =>
+          index !== slotIndex ? slot : { type: result.resourceType, url: result.url, poster: result.poster }
+        ) }
+      ) } };
+    }));
     setError("");
   };
 
@@ -477,11 +474,9 @@ export function AdvancedCreateForm() {
 
     if (!activeScene.book) return;
 
-    updateActiveBook({
-      coverImage: result.url,
-      coverPositionX: 50,
-      coverPositionY: 50,
-    });
+    updateScenes((current) => current.map((scene) => scene.id === activeScene.id && scene.book
+      ? { ...scene, book: { ...scene.book, coverImage: result.url, coverPositionX: 50, coverPositionY: 50 } }
+      : scene));
     setError("");
   };
 
