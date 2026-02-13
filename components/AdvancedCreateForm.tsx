@@ -590,7 +590,7 @@ export function AdvancedCreateForm() {
               : scene.book?.pages.flatMap((page, pageIndex) =>
                   page.slots
                     .filter((slot): slot is NonNullable<typeof slot> =>
-                      Boolean(slot?.url),
+                      Boolean(slot?.url && slot.type === "image"),
                     )
                     .map((slot, slotIndex) => ({
                       imageUrl: slot.url,
