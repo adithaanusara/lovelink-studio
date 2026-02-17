@@ -624,8 +624,14 @@ export function AdvancedCreateForm() {
 
   const copyUrl = async () => {
     if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setError("");
+    } catch {
+      setCopied(false);
+      setError("Could not copy the link. Select and copy the URL above.");
+    }
   };
 
   const itemLabel = (item: EditorItem) => {
@@ -1545,6 +1551,7 @@ export function AdvancedCreateForm() {
             <div className="mt-5 break-all rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-semibold text-emerald-900">
               {shareUrl}
             </div>
+            {error ? <p role="alert" className="notice notice-error mt-3">{error}</p> : null}
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               <button
