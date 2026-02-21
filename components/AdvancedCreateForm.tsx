@@ -238,7 +238,7 @@ export function AdvancedCreateForm() {
     ]
       .filter(Boolean)
       .join(" "),
-  );
+  ).slice(0, 180).replace(/-+$/, "");
 
   const updateScenes = (updater: (current: StoryScene[]) => StoryScene[]) => {
     setScenes((current) => updater(current));
@@ -1449,6 +1449,7 @@ export function AdvancedCreateForm() {
               <label className="grid gap-2">
                 <span className="field-label">Recipient name</span>
                 <input
+                  required maxLength={100}
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
                   className="field"
@@ -1459,6 +1460,7 @@ export function AdvancedCreateForm() {
               <label className="grid gap-2">
                 <span className="field-label">Occasion</span>
                 <input
+                  required maxLength={100}
                   value={occasion}
                   onChange={(e) => setOccasion(e.target.value)}
                   className="field"
@@ -1469,6 +1471,7 @@ export function AdvancedCreateForm() {
               <label className="grid gap-2">
                 <span className="field-label">From name</span>
                 <input
+                  required maxLength={100}
                   value={sender}
                   onChange={(e) => setSender(e.target.value)}
                   className="field"
@@ -1482,6 +1485,7 @@ export function AdvancedCreateForm() {
                   <span className="font-normal text-slate-400">(optional)</span>
                 </span>
                 <input
+                  maxLength={100}
                   value={customKeyword}
                   onChange={(e) => setCustomKeyword(e.target.value)}
                   className="field"
