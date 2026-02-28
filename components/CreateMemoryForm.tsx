@@ -20,11 +20,11 @@ async function uploadToCloudinary(file: File) {
     body: formData
   });
 
-  if (!response.ok) {
-    throw new Error("Image upload failed.");
+  const data = await response.json().catch(() => null);
+  if (!response.ok || typeof data?.url !== "string" || data.resourceType !== "image") {
+    throw new Error(data?.error || "Please upload an image file.");
   }
-
-  return response.json() as Promise<{ url: string }>;
+  return data as { url: string };
 }
 
 export function CreateMemoryForm() {
@@ -39,7 +39,8 @@ export function CreateMemoryForm() {
   const [musicUrl, setMusicUrl] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [uploadCount, setUploadCount] = useState(0);
+  const uploading = uploadCount > 0;
   const [submitting, setSubmitting] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
@@ -48,7 +49,7 @@ export function CreateMemoryForm() {
   const previewGallery = useMemo(() => gallery.filter((item) => item.imageUrl), [gallery]);
 
   const handleCoverUpload = async (file: File) => {
-    setUploading(true);
+    setUploadCount((count) => count + 1);
     setError("");
     try {
       const result = await uploadToCloudinary(file);
@@ -56,17 +57,18 @@ export function CreateMemoryForm() {
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Failed to upload cover image.");
     } finally {
-      setUploading(false);
+      setUploadCount((count) => Math.max(0, count - 1));
     }
   };
 
   const handleGalleryUpload = async (files: FileList | null) => {
     if (!files?.length) return;
-    setUploading(true);
+    setUploadCount((count) => count + 1);
     setError("");
 
     try {
-      const uploaded = await Promise.all(Array.from(files).map((file) => uploadToCloudinary(file)));
+      const results = await Promise.allSettled(Array.from(files).map((file) => uploadToCloudinary(file)));
+      const uploaded = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
       setGallery((current) => [
         ...current,
         ...uploaded.map((item, index) => ({
@@ -74,10 +76,13 @@ export function CreateMemoryForm() {
           altText: `Memory ${current.length + index + 1}`
         }))
       ]);
+      if (uploaded.length !== results.length) {
+        setError("Some images could not be uploaded. Successful uploads have been kept; retry the failed images.");
+      }
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Failed to upload gallery images.");
     } finally {
-      setUploading(false);
+      setUploadCount((count) => Math.max(0, count - 1));
     }
   };
 
@@ -106,6 +111,7 @@ export function CreateMemoryForm() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting || uploading) return;
     setError("");
     setShareUrl("");
     setCopied(false);
@@ -138,10 +144,10 @@ export function CreateMemoryForm() {
         })
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
-      if (!response.ok) {
-        throw new Error(data.error ?? "Failed to create memory page.");
+      if (!response.ok || typeof data?.shareUrl !== "string") {
+        throw new Error(data?.error ?? "Failed to create memory page.");
       }
 
       setShareUrl(data.shareUrl);
