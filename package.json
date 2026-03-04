@@ -9,7 +9,9 @@
     "lint": "next lint",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "test": "node --test tests/*.test.cjs",
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
