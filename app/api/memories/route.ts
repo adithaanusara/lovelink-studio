@@ -8,7 +8,7 @@ const memorySchema = z.object({
   recipient: z.string().min(2).max(80),
   sender: z.string().min(2).max(80),
   occasion: z.string().min(2).max(40),
-  message: z.string().min(12).max(2000),
+  message: z.string().min(3, "Message must be at least 3 characters.").max(2000),
   accentText: z.string().max(160).optional().nullable(),
   musicUrl: z.string().url().optional().or(z.literal("")),
   eventDate: z.string().optional().or(z.literal("")),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, UploadCloud } from "lucide-react";
+import { Check, Copy, Loader2, UploadCloud } from "lucide-react";
 
 type GalleryItem = {
   imageUrl: string;
@@ -42,6 +42,7 @@ export function CreateMemoryForm() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
   const previewGallery = useMemo(() => gallery.filter((item) => item.imageUrl), [gallery]);
@@ -68,7 +69,10 @@ export function CreateMemoryForm() {
       const uploaded = await Promise.all(Array.from(files).map((file) => uploadToCloudinary(file)));
       setGallery((current) => [
         ...current,
-        ...uploaded.map((item, index) => ({ imageUrl: item.url, altText: `Memory ${current.length + index + 1}` }))
+        ...uploaded.map((item, index) => ({
+          imageUrl: item.url,
+          altText: `Memory ${current.length + index + 1}`
+        }))
       ]);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Failed to upload gallery images.");
@@ -78,17 +82,33 @@ export function CreateMemoryForm() {
   };
 
   const updateGalleryAlt = (index: number, value: string) => {
-    setGallery((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, altText: value } : item)));
+    setGallery((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, altText: value } : item
+      )
+    );
   };
 
   const removeGalleryImage = (index: number) => {
     setGallery((current) => current.filter((_, itemIndex) => itemIndex !== index));
   };
 
+  const copyShareUrl = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Could not copy the URL.");
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setShareUrl("");
+    setCopied(false);
 
     if (!coverImage) {
       setError("Please upload a cover image before publishing.");
@@ -138,13 +158,22 @@ export function CreateMemoryForm() {
         <div className="mb-8 space-y-2">
           <p className="text-sm uppercase tracking-[0.3em] text-pink-200">Builder</p>
           <h1 className="text-3xl font-bold">Create a surprise page</h1>
-          <p className="text-slate-300">Fill the details, upload photos, and publish a beautiful memory URL.</p>
+          <p className="text-slate-300">
+            Fill the details, upload photos, and publish your private memory link.
+          </p>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
           <Field label="Page title">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className="input" placeholder="Happy Birthday, Nethmi" required />
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="input"
+              placeholder="Happy Birthday, Nethmi"
+              required
+            />
           </Field>
+
           <Field label="Occasion">
             <select value={occasion} onChange={(e) => setOccasion(e.target.value)} className="input">
               {occasions.map((item) => (
@@ -152,15 +181,36 @@ export function CreateMemoryForm() {
               ))}
             </select>
           </Field>
+
           <Field label="Recipient name">
-            <input value={recipient} onChange={(e) => setRecipient(e.target.value)} className="input" placeholder="Nethmi" required />
+            <input
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              className="input"
+              placeholder="Nethmi"
+              required
+            />
           </Field>
+
           <Field label="Sender name">
-            <input value={sender} onChange={(e) => setSender(e.target.value)} className="input" placeholder="Aditha" required />
+            <input
+              value={sender}
+              onChange={(e) => setSender(e.target.value)}
+              className="input"
+              placeholder="Aditha"
+              required
+            />
           </Field>
+
           <Field label="Special date">
-            <input value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="input" type="date" />
+            <input
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              className="input"
+              type="date"
+            />
           </Field>
+
           <Field label="Theme">
             <select value={theme} onChange={(e) => setTheme(e.target.value)} className="input">
               {themes.map((item) => (
@@ -181,6 +231,7 @@ export function CreateMemoryForm() {
               placeholder="Every memory with you is my favorite."
             />
           </Field>
+
           <Field label="Heartfelt message">
             <textarea
               value={message}
@@ -190,6 +241,7 @@ export function CreateMemoryForm() {
               required
             />
           </Field>
+
           <Field label="Optional music URL">
             <input
               value={musicUrl}
@@ -218,7 +270,11 @@ export function CreateMemoryForm() {
           />
         </div>
 
-        {error ? <p className="mt-5 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">{error}</p> : null}
+        {error ? (
+          <p className="mt-5 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
+            {error}
+          </p>
+        ) : null}
 
         <button
           type="submit"
@@ -234,29 +290,57 @@ export function CreateMemoryForm() {
         <div className="glass rounded-[2rem] p-6">
           <h2 className="text-xl font-semibold">Live content status</h2>
           <div className="mt-5 space-y-4 text-sm text-slate-300">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Cover image: {coverImage ? "Uploaded" : "Waiting"}</div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Gallery images: {previewGallery.length}</div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Theme: {theme}</div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">Occasion: {occasion}</div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              Cover image: {coverImage ? "Uploaded" : "Waiting"}
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              Gallery images: {previewGallery.length}
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              Theme: {theme}
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              Occasion: {occasion}
+            </div>
           </div>
         </div>
 
         <div className="glass rounded-[2rem] p-6">
           <h2 className="text-xl font-semibold">Preview assets</h2>
           <div className="mt-5 space-y-4">
-            {coverImage ? <img src={coverImage} alt="Cover preview" className="h-56 w-full rounded-[1.5rem] object-cover" /> : <EmptyState />}
+            {coverImage ? (
+              <img
+                src={coverImage}
+                alt="Cover preview"
+                className="h-56 w-full rounded-[1.5rem] object-cover"
+              />
+            ) : (
+              <EmptyState />
+            )}
+
             {previewGallery.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {previewGallery.map((item, index) => (
-                  <div key={`${item.imageUrl}-${index}`} className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-2">
-                    <img src={item.imageUrl} alt={item.altText} className="h-28 w-full rounded-xl object-cover" />
+                  <div
+                    key={`${item.imageUrl}-${index}`}
+                    className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-2"
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={item.altText}
+                      className="h-28 w-full rounded-xl object-cover"
+                    />
                     <input
                       value={item.altText}
                       onChange={(e) => updateGalleryAlt(index, e.target.value)}
                       className="input !rounded-xl !px-3 !py-2 text-xs"
                       placeholder="Image caption"
                     />
-                    <button type="button" onClick={() => removeGalleryImage(index)} className="text-xs text-red-300">
+                    <button
+                      type="button"
+                      onClick={() => removeGalleryImage(index)}
+                      className="text-xs text-red-300"
+                    >
                       Remove
                     </button>
                   </div>
@@ -269,10 +353,33 @@ export function CreateMemoryForm() {
         {shareUrl ? (
           <div className="rounded-[2rem] border border-emerald-400/30 bg-emerald-500/10 p-6 text-emerald-100">
             <p className="text-sm uppercase tracking-[0.3em]">Published successfully</p>
-            <p className="mt-3 break-all font-medium">{shareUrl}</p>
-            <a href={shareUrl} target="_blank" className="mt-4 inline-flex rounded-full bg-white/10 px-4 py-2 text-sm">
-              Open page
-            </a>
+            <p className="mt-2 text-sm text-emerald-200">
+              Me URL eka oyata witharai. Copy karala yanna oni kenata yawanna.
+            </p>
+
+            <div className="mt-4 break-all rounded-2xl border border-emerald-300/20 bg-black/10 p-4 text-sm font-medium">
+              {shareUrl}
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void copyShareUrl()}
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm"
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copied" : "Copy URL"}
+              </button>
+
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm"
+              >
+                Open page
+              </a>
+            </div>
           </div>
         ) : null}
 
@@ -331,7 +438,13 @@ function UploadBlock({
         <div className="flex-1">
           <p className="font-semibold">{label}</p>
           <p className="mt-1 text-sm leading-6 text-slate-300">{helper}</p>
-          <input type="file" accept="image/*" multiple={multiple} onChange={onChange} className="mt-4 block w-full text-sm text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-pink-500/20 file:px-4 file:py-2 file:text-sm file:font-medium file:text-pink-100" />
+          <input
+            type="file"
+            accept="image/*"
+            multiple={multiple}
+            onChange={onChange}
+            className="mt-4 block w-full text-sm text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-pink-500/20 file:px-4 file:py-2 file:text-sm file:font-medium file:text-pink-100"
+          />
         </div>
       </div>
     </label>
