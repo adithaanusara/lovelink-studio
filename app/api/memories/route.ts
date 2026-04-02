@@ -14,6 +14,7 @@ const memorySchema = z.object({
   eventDate: z.string().optional().nullable(),
   theme: z.string(),
   coverImage: z.string().url(),
+  customSlugBase: z.string().min(1).optional(),
   gallery: z.array(
     z.object({
       imageUrl: z.string().url(),
@@ -36,7 +37,19 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
-    const slug = createSlug(`${data.recipient}-${data.occasion}-${data.title}-${Date.now()}`);
+
+    const baseSlug = createSlug(
+      data.customSlugBase ||
+        `${data.recipient}-${data.occasion}-from-${data.sender}`
+    );
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await prisma.memoryProject.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter += 1;
+    }
 
     const project = await prisma.memoryProject.create({
       data: {
@@ -64,9 +77,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      shareUrl: `${process.env.NEXT_PUBLIC_APP_URL}/p/${project.slug}`
+      shareUrl: `${process.env.NEXT_PUBLIC_APP_URL}/${project.slug}`
     });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to publish page" }, { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Failed to publish page" },
+      { status: 500 }
+    );
   }
 }

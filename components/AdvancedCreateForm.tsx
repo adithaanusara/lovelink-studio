@@ -21,6 +21,16 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export function AdvancedCreateForm() {
   const [template, setTemplate] = useState<EditorTemplate>(editorTemplates[0]);
   const [items, setItems] = useState<EditorItem[]>(
@@ -28,13 +38,15 @@ export function AdvancedCreateForm() {
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const [title, setTitle] = useState("For My Favorite Person");
-  const [recipient, setRecipient] = useState("Sakuni");
-  const [sender, setSender] = useState("Aditha");
-  const [occasion, setOccasion] = useState("Birthday");
-  const [message, setMessage] = useState("You are the most special person in my life.");
-  const [musicUrl, setMusicUrl] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const [sender, setSender] = useState("");
+  const [occasion, setOccasion] = useState("");
+  const [customKeyword, setCustomKeyword] = useState("");
+
   const [coverImage, setCoverImage] = useState("");
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsSaved, setDetailsSaved] = useState(false);
+
   const [shareUrl, setShareUrl] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,6 +57,17 @@ export function AdvancedCreateForm() {
     [items, selectedId]
   );
 
+  const urlPreview = slugify(
+    [
+      recipient.trim(),
+      occasion.trim(),
+      sender.trim() ? `from ${sender.trim()}` : "",
+      customKeyword.trim()
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+
   const handleTemplateSelect = (next: EditorTemplate) => {
     setTemplate(next);
     setItems(next.items.map((item) => ({ ...item })));
@@ -52,7 +75,9 @@ export function AdvancedCreateForm() {
   };
 
   const updateItem = (id: string, patch: Partial<EditorItem>) => {
-    setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+    setItems((current) =>
+      current.map((item) => (item.id === id ? { ...item, ...patch } : item))
+    );
   };
 
   const addTextBlock = () => {
@@ -142,34 +167,67 @@ export function AdvancedCreateForm() {
     }
   };
 
+  const handleSaveDetails = () => {
+    if (!recipient.trim()) {
+      setError("Enter recipient name");
+      return;
+    }
+
+    if (!occasion.trim()) {
+      setError("Enter occasion");
+      return;
+    }
+
+    if (!sender.trim()) {
+      setError("Enter sender name");
+      return;
+    }
+
+    setDetailsSaved(true);
+    setError("");
+    setShowDetailsModal(false);
+  };
+
   const handlePublish = async () => {
     setError("");
     setShareUrl("");
     setCopied(false);
 
-    if (!title.trim()) return setError("Enter a title");
-    if (!recipient.trim()) return setError("Enter recipient");
-    if (!sender.trim()) return setError("Enter sender");
-    if (!message.trim()) return setError("Enter message");
-    if (!coverImage.trim()) return setError("Upload at least one image");
+    if (!detailsSaved) {
+      setError("First click Customize URL and save the details.");
+      return;
+    }
+
+    if (!coverImage.trim()) {
+      setError("Upload at least one image");
+      return;
+    }
+
+    if (!urlPreview) {
+      setError("Please complete the URL details.");
+      return;
+    }
 
     setSaving(true);
 
     try {
       const response = await fetch("/api/memories", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-          title,
+          title: `${recipient} ${occasion}`,
           recipient,
           sender,
           occasion,
-          message,
+          message: `${occasion} surprise for ${recipient}`,
           accentText: "",
-          musicUrl,
+          musicUrl: "",
           eventDate: "",
           theme: "romantic",
           coverImage,
+          customSlugBase: urlPreview,
           gallery: items
             .filter((item) => item.type === "image" && item.src)
             .map((item) => ({
@@ -223,6 +281,61 @@ export function AdvancedCreateForm() {
                 {tpl.name}
               </button>
             ))}
+
+            <div className="mx-2 h-8 w-px bg-white/10" />
+
+            <button
+              type="button"
+              onClick={addTextBlock}
+              className="rounded-full bg-white/10 px-4 py-2 text-sm"
+            >
+              + Text
+            </button>
+
+            <button
+              type="button"
+              onClick={addEmojiBlock}
+              className="rounded-full bg-white/10 px-4 py-2 text-sm"
+            >
+              + Emoji
+            </button>
+
+            <button
+              type="button"
+              onClick={addEmptyImageBlock}
+              className="rounded-full bg-white/10 px-4 py-2 text-sm"
+            >
+              + Image box
+            </button>
+
+            <button
+              type="button"
+              onClick={deleteSelected}
+              className="rounded-full bg-red-500/20 px-4 py-2 text-sm text-red-200"
+            >
+              Delete
+            </button>
+
+            <div className="ml-auto flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setShowDetailsModal(true);
+                }}
+                className="rounded-full bg-white/10 px-5 py-3 text-sm font-semibold"
+              >
+                Customize URL
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePublish}
+                className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-sm font-semibold"
+              >
+                {saving ? "Publishing..." : "Publish"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -238,86 +351,10 @@ export function AdvancedCreateForm() {
           </div>
 
           <div className="space-y-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
-            <h2 className="text-lg font-bold">Story settings</h2>
+            <h2 className="text-lg font-bold">Editor tools</h2>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={addTextBlock}
-                className="rounded-full bg-white/10 px-4 py-2 text-sm"
-              >
-                + Text
-              </button>
-
-              <button
-                type="button"
-                onClick={addEmojiBlock}
-                className="rounded-full bg-white/10 px-4 py-2 text-sm"
-              >
-                + Emoji
-              </button>
-
-              <button
-                type="button"
-                onClick={addEmptyImageBlock}
-                className="rounded-full bg-white/10 px-4 py-2 text-sm"
-              >
-                + Image box
-              </button>
-
-              <button
-                type="button"
-                onClick={deleteSelected}
-                className="rounded-full bg-red-500/20 px-4 py-2 text-sm text-red-200"
-              >
-                Delete
-              </button>
-            </div>
-
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
-              placeholder="Title"
-            />
-
-            <input
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
-              placeholder="Recipient"
-            />
-
-            <input
-              value={sender}
-              onChange={(e) => setSender(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
-              placeholder="Sender"
-            />
-
-            <input
-              value={occasion}
-              onChange={(e) => setOccasion(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
-              placeholder="Occasion"
-            />
-
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="min-h-28 w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
-              placeholder="Message"
-            />
-
-            <input
-              value={musicUrl}
-              onChange={(e) => setMusicUrl(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
-              placeholder="Music URL"
-            />
-
-            <label className="block rounded-2xl bg-white/10 px-4 py-3 text-sm cursor-pointer">
-              Upload cover image
+            <label className="block cursor-pointer rounded-2xl bg-white/10 px-4 py-3 text-sm">
+              Upload / replace cover image
               <input
                 type="file"
                 accept="image/*"
@@ -330,7 +367,7 @@ export function AdvancedCreateForm() {
             </label>
 
             {selected?.type === "image" ? (
-              <label className="block rounded-2xl bg-white/10 px-4 py-3 text-sm cursor-pointer">
+              <label className="block cursor-pointer rounded-2xl bg-white/10 px-4 py-3 text-sm">
                 Fill selected image
                 <input
                   type="file"
@@ -392,35 +429,101 @@ export function AdvancedCreateForm() {
               </div>
             ) : null}
 
+            {detailsSaved ? (
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+                URL details saved successfully.
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                Click <span className="font-semibold text-white">Customize URL</span> before publishing.
+              </div>
+            )}
+
             {error ? (
               <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200">
                 {error}
               </div>
             ) : null}
-
-            <button
-              type="button"
-              onClick={handlePublish}
-              className="w-full rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-sm font-semibold"
-            >
-              {saving ? "Publishing..." : "Publish"}
-            </button>
           </div>
         </div>
       </div>
+
+      {showDetailsModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[#0b1226] p-6 shadow-2xl">
+            <p className="text-sm uppercase tracking-[0.3em] text-pink-200">Customize URL</p>
+            <h3 className="mt-3 text-3xl font-bold text-white">Create a beautiful share link</h3>
+
+            <div className="mt-6 grid gap-4">
+              <input
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-white"
+                placeholder="Recipient name"
+              />
+
+              <input
+                value={occasion}
+                onChange={(e) => setOccasion(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-white"
+                placeholder="Occasion (Birthday, Valentine, Anniversary...)"
+              />
+
+              <input
+                value={sender}
+                onChange={(e) => setSender(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-white"
+                placeholder="From name"
+              />
+
+              <input
+                value={customKeyword}
+                onChange={(e) => setCustomKeyword(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-white"
+                placeholder="Optional custom keyword"
+              />
+
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+                <p className="text-xs uppercase tracking-[0.25em] text-emerald-200">URL preview</p>
+                <p className="mt-2 break-all text-sm text-emerald-100">
+                  /{urlPreview || "your-custom-link"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDetailsModal(false)}
+                className="rounded-full bg-white/10 px-5 py-3 text-sm font-semibold text-white"
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveDetails}
+                className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-sm font-semibold text-white"
+              >
+                Save Details
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {shareUrl ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-xl rounded-[2rem] border border-emerald-400/20 bg-[#0b1226] p-6 shadow-2xl">
             <p className="text-center text-sm uppercase tracking-[0.3em] text-emerald-200">
-              Published successfully
+              Ready to share
             </p>
 
             <h3 className="mt-3 text-center text-3xl font-bold text-white">
-              Your share link is ready
+              Your URL is ready
             </h3>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-center break-all text-sm text-emerald-100">
+            <div className="mt-6 break-all rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-sm text-emerald-100">
               {shareUrl}
             </div>
 
