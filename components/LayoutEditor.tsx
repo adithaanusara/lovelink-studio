@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorItem } from "@/lib/templates";
+
+type AnimationType =
+  | "none"
+  | "falling-hearts"
+  | "falling-petals"
+  | "sparkle-hearts";
 
 type Props = {
   items: EditorItem[];
   background: string;
   coverImage?: string;
+  animation?: AnimationType;
   onChange: (items: EditorItem[]) => void;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
@@ -29,13 +36,135 @@ type ResizeState = {
   itemH: number;
   itemX: number;
   itemY: number;
-  direction: "bottom-right";
 } | null;
+
+function FallingLayer({ type }: { type: AnimationType }) {
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 42 }, (_, i) => ({
+        id: i,
+        left: `${(i * 17) % 100}%`,
+        delay: `${(i % 12) * 0.25}s`,
+        duration: `${4.2 + (i % 5) * 0.55}s`,
+        size: 14 + (i % 6) * 5,
+        drift: -40 + (i % 9) * 10,
+        rotate: 90 + (i % 8) * 35,
+        opacity: 0.35 + (i % 4) * 0.12,
+        symbol: type === "falling-petals" ? "✿" : "♥"
+      })),
+    [type]
+  );
+
+  if (type !== "falling-hearts" && type !== "falling-petals") return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <style>{`
+        @keyframes romantic-fall-dense {
+          0% {
+            transform: translate3d(0, -14vh, 0) rotate(0deg) scale(0.85);
+            opacity: 0;
+          }
+          8% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.95;
+          }
+          100% {
+            transform: translate3d(var(--drift), 118vh, 0) rotate(var(--rotate)) scale(1.08);
+            opacity: 0;
+          }
+        }
+      `}</style>
+
+      {particles.map((item) => (
+        <span
+          key={item.id}
+          className="absolute select-none"
+          style={{
+            left: item.left,
+            top: "-16%",
+            fontSize: `${item.size}px`,
+            color: type === "falling-petals" ? "#f9a8d4" : "#fb7185",
+            opacity: item.opacity,
+            animationName: "romantic-fall-dense",
+            animationDuration: item.duration,
+            animationDelay: item.delay,
+            animationIterationCount: "infinite",
+            animationTimingFunction: "linear",
+            filter:
+              type === "falling-petals"
+                ? "drop-shadow(0 0 10px rgba(249,168,212,0.35))"
+                : "drop-shadow(0 0 10px rgba(251,113,133,0.35))",
+            ["--drift" as string]: `${item.drift}px`,
+            ["--rotate" as string]: `${item.rotate}deg`
+          }}
+        >
+          {item.symbol}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function SparkleHeartsLayer() {
+  const hearts = useMemo(
+    () =>
+      Array.from({ length: 28 }, (_, i) => ({
+        id: i,
+        left: `${3 + ((i * 11) % 94)}%`,
+        top: `${4 + ((i * 9) % 88)}%`,
+        delay: `${(i % 8) * 0.18}s`,
+        size: 10 + (i % 5) * 5
+      })),
+    []
+  );
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <style>{`
+        @keyframes sparkle-heart-dense {
+          0%, 100% {
+            transform: scale(0.7);
+            opacity: 0.12;
+          }
+          50% {
+            transform: scale(1.35);
+            opacity: 1;
+          }
+        }
+      `}</style>
+
+      {hearts.map((item) => (
+        <span
+          key={item.id}
+          className="absolute select-none"
+          style={{
+            left: item.left,
+            top: item.top,
+            fontSize: `${item.size}px`,
+            color: "#fb7185",
+            animationName: "sparkle-heart-dense",
+            animationDuration: "1.5s",
+            animationDelay: item.delay,
+            animationIterationCount: "infinite",
+            animationTimingFunction: "ease-in-out",
+            filter: "drop-shadow(0 0 12px rgba(251,113,133,0.5))"
+          }}
+        >
+          ♥
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function LayoutEditor({
   items,
   background,
   coverImage,
+  animation = "none",
   onChange,
   selectedId,
   onSelect,
@@ -70,21 +199,15 @@ export function LayoutEditor({
           Math.min(dragState.itemY + dy, container.clientHeight - item.h)
         );
 
-        updateItem(dragState.id, {
-          x: nextX,
-          y: nextY
-        });
+        updateItem(dragState.id, { x: nextX, y: nextY });
       }
 
       if (resizeState) {
-        const item = items.find((x) => x.id === resizeState.id);
-        if (!item) return;
+        const minWidth = 120;
+        const minHeight = 60;
 
         const dx = e.clientX - resizeState.startX;
         const dy = e.clientY - resizeState.startY;
-
-        const minWidth = 120;
-        const minHeight = 60;
 
         const nextW = Math.max(
           minWidth,
@@ -96,10 +219,7 @@ export function LayoutEditor({
           Math.min(resizeState.itemH + dy, container.clientHeight - resizeState.itemY)
         );
 
-        updateItem(resizeState.id, {
-          w: nextW,
-          h: nextH
-        });
+        updateItem(resizeState.id, { w: nextW, h: nextH });
       }
     };
 
@@ -135,6 +255,10 @@ export function LayoutEditor({
         </>
       ) : null}
 
+      {animation === "falling-hearts" ? <FallingLayer type="falling-hearts" /> : null}
+      {animation === "falling-petals" ? <FallingLayer type="falling-petals" /> : null}
+      {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
+
       {items
         .slice()
         .sort((a, b) => a.z - b.z)
@@ -142,9 +266,7 @@ export function LayoutEditor({
           <div
             key={item.id}
             className={`absolute overflow-hidden rounded-2xl ${
-              selectedId === item.id
-                ? "ring-2 ring-pink-500"
-                : "ring-1 ring-white/10"
+              selectedId === item.id ? "ring-2 ring-pink-500" : "ring-1 ring-white/10"
             }`}
             style={{
               left: item.x,
@@ -157,7 +279,6 @@ export function LayoutEditor({
             onMouseDown={(e) => {
               e.stopPropagation();
               onSelect(item.id);
-
               setDragState({
                 id: item.id,
                 startX: e.clientX,
@@ -218,8 +339,7 @@ export function LayoutEditor({
                   itemW: item.w,
                   itemH: item.h,
                   itemX: item.x,
-                  itemY: item.y,
-                  direction: "bottom-right"
+                  itemY: item.y
                 });
               }}
               style={{ transform: "translate(35%, 35%)", cursor: "nwse-resize" }}

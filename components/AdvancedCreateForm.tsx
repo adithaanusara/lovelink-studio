@@ -4,6 +4,12 @@ import { useMemo, useRef, useState } from "react";
 import { editorTemplates, EditorItem, EditorTemplate } from "@/lib/templates";
 import { LayoutEditor } from "@/components/LayoutEditor";
 
+type AnimationType =
+  | "none"
+  | "falling-hearts"
+  | "falling-petals"
+  | "sparkle-hearts";
+
 async function uploadToCloudinary(file: File) {
   const formData = new FormData();
   formData.append("file", file);
@@ -46,6 +52,8 @@ export function AdvancedCreateForm() {
   const [coverImage, setCoverImage] = useState("");
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsSaved, setDetailsSaved] = useState(false);
+
+  const [animation, setAnimation] = useState<AnimationType>("none");
 
   const [shareUrl, setShareUrl] = useState("");
   const [error, setError] = useState("");
@@ -228,7 +236,8 @@ export function AdvancedCreateForm() {
           layoutJson: {
             templateId: template.id,
             background: template.background,
-            items
+            items,
+            animation
           }
         })
       });
@@ -332,6 +341,7 @@ export function AdvancedCreateForm() {
               items={items}
               background={template.background}
               coverImage={coverImage}
+              animation={animation}
               onChange={setItems}
               selectedId={selectedId}
               onSelect={setSelectedId}
@@ -385,6 +395,22 @@ export function AdvancedCreateForm() {
               >
                 Upload cover image
               </button>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <label className="mb-2 block text-sm font-semibold text-white">
+                Animation selector
+              </label>
+              <select
+                value={animation}
+                onChange={(e) => setAnimation(e.target.value as AnimationType)}
+                className="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-white outline-none"
+              >
+                <option value="none">No animation</option>
+                <option value="falling-hearts">Falling hearts</option>
+                <option value="falling-petals">Falling petals</option>
+                <option value="sparkle-hearts">Sparkle hearts</option>
+              </select>
             </div>
 
             {selected?.type === "text" ? (
