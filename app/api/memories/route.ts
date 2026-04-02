@@ -4,34 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { createSlug } from "@/lib/utils";
 
 const memorySchema = z.object({
-  title: z.string().min(3).max(120),
-  recipient: z.string().min(2).max(80),
-  sender: z.string().min(2).max(80),
-  occasion: z.string().min(2).max(40),
-  message: z.string().min(3, "Message must be at least 3 characters.").max(2000),
-  accentText: z.string().max(160).optional().nullable(),
-  musicUrl: z.string().url().optional().or(z.literal("")),
-  eventDate: z.string().optional().or(z.literal("")),
-  theme: z.enum(["romantic", "dreamy", "elegant", "cute"]),
+  title: z.string().min(1),
+  recipient: z.string().min(1),
+  sender: z.string().min(1),
+  occasion: z.string().min(1),
+  message: z.string().min(1),
+  accentText: z.string().optional().nullable(),
+  musicUrl: z.string().optional().nullable(),
+  eventDate: z.string().optional().nullable(),
+  theme: z.string(),
   coverImage: z.string().url(),
-  gallery: z
-    .array(
-      z.object({
-        imageUrl: z.string().url(),
-        altText: z.string().max(120).optional().nullable()
-      })
-    )
-    .max(8)
+  gallery: z.array(
+    z.object({
+      imageUrl: z.string().url(),
+      altText: z.string().optional().nullable()
+    })
+  ),
+  layoutJson: z.any().optional()
 });
-
-export async function GET() {
-  const memories = await prisma.memoryProject.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { gallery: { orderBy: { sortOrder: "asc" } } }
-  });
-
-  return NextResponse.json(memories);
-}
 
 export async function POST(request: Request) {
   try {
@@ -39,33 +29,31 @@ export async function POST(request: Request) {
     const parsed = memorySchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid data." }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "Invalid data" },
+        { status: 400 }
+      );
     }
 
-    const payload = parsed.data;
-    const baseSlug = createSlug(`${payload.recipient}-${payload.occasion}-${payload.title}`);
-
-    const existingCount = await prisma.memoryProject.count({
-      where: { slug: { startsWith: baseSlug } }
-    });
-
-    const slug = existingCount > 0 ? `${baseSlug}-${existingCount + 1}` : baseSlug;
+    const data = parsed.data;
+    const slug = createSlug(`${data.recipient}-${data.occasion}-${data.title}-${Date.now()}`);
 
     const project = await prisma.memoryProject.create({
       data: {
-        title: payload.title,
-        recipient: payload.recipient,
-        sender: payload.sender,
-        occasion: payload.occasion,
-        message: payload.message,
-        accentText: payload.accentText,
-        musicUrl: payload.musicUrl || null,
-        eventDate: payload.eventDate ? new Date(payload.eventDate) : null,
-        theme: payload.theme,
-        coverImage: payload.coverImage,
         slug,
+        title: data.title,
+        recipient: data.recipient,
+        sender: data.sender,
+        occasion: data.occasion,
+        message: data.message,
+        accentText: data.accentText || null,
+        musicUrl: data.musicUrl || null,
+        eventDate: data.eventDate ? new Date(data.eventDate) : null,
+        theme: data.theme,
+        coverImage: data.coverImage,
+        layoutJson: data.layoutJson ?? null,
         gallery: {
-          create: payload.gallery.map((item: { imageUrl: string; altText?: string | null }, index: number) => ({
+          create: data.gallery.map((item, index) => ({
             imageUrl: item.imageUrl,
             altText: item.altText || null,
             sortOrder: index
@@ -74,15 +62,11 @@ export async function POST(request: Request) {
       }
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
     return NextResponse.json({
-      message: "Memory page created successfully.",
-      slug: project.slug,
-      shareUrl: `${appUrl}/p/${project.slug}`
+      success: true,
+      shareUrl: `${process.env.NEXT_PUBLIC_APP_URL}/p/${project.slug}`
     });
   } catch (error) {
-    console.error("MEMORY_CREATE_ERROR", error);
-    return NextResponse.json({ error: "Could not create memory page." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to publish page" }, { status: 500 });
   }
 }

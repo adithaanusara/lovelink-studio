@@ -15,29 +15,30 @@ enum Theme {
 }
 
 model MemoryProject {
-  id          String      @id @default(cuid())
-  slug        String      @unique
+  id          String         @id @default(cuid())
+  slug        String         @unique
   title       String
   recipient   String
   sender      String
   occasion    String
-  message     String      @db.Text
+  message     String
   accentText  String?
   musicUrl    String?
   eventDate   DateTime?
-  theme       Theme       @default(romantic)
+  theme       String
   coverImage  String
+  layoutJson  Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   gallery     GalleryImage[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
 }
 
 model GalleryImage {
-  id         String        @id @default(cuid())
-  imageUrl   String
-  altText    String?
-  sortOrder  Int           @default(0)
-  projectId  String
-  project    MemoryProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt  DateTime      @default(now())
+  id         String   @id @default(cuid())
+  imageUrl    String
+  altText     String?
+  sortOrder   Int
+  projectId   String
+  createdAt   DateTime @default(now())
+  project     MemoryProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
