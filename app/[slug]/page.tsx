@@ -43,9 +43,23 @@ export default async function MemoryPage({
     <main className="min-h-screen bg-black text-white">
       <section
         className="relative mx-auto min-h-screen max-w-[1400px] overflow-hidden"
-        style={{ background: layout?.background || "linear-gradient(135deg,#12071f,#08122c)" }}
+        style={{
+          background:
+            layout?.background || "linear-gradient(135deg, #12071f 0%, #08122c 100%)"
+        }}
       >
-        <div className="absolute inset-0 bg-black/20" />
+        {project.coverImage ? (
+          <>
+            <img
+              src={project.coverImage}
+              alt="Cover background"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-slate-950/45" />
+          </>
+        ) : null}
+
+        <div className="absolute inset-0 bg-black/10" />
 
         {layout?.items?.map((item) => (
           <div

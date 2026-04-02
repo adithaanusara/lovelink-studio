@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { editorTemplates, EditorItem, EditorTemplate } from "@/lib/templates";
 import { LayoutEditor } from "@/components/LayoutEditor";
 
@@ -51,6 +51,10 @@ export function AdvancedCreateForm() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const replaceCoverInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingImageIdRef = useRef<string | null>(null);
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -143,24 +147,11 @@ export function AdvancedCreateForm() {
   const handleCoverUpload = async (file: File) => {
     const result = await uploadToCloudinary(file);
     setCoverImage(result.url);
-
-    setItems((current) => {
-      let assigned = false;
-      return current.map((item) => {
-        if (item.type === "image" && !item.src && !assigned) {
-          assigned = true;
-          return { ...item, src: result.url };
-        }
-        return item;
-      });
-    });
   };
 
-  const handleImageUploadToSelected = async (file: File) => {
-    if (!selected || selected.type !== "image") return;
-
+  const handleImageUploadToSpecific = async (imageId: string, file: File) => {
     const result = await uploadToCloudinary(file);
-    updateItem(selected.id, { src: result.url });
+    updateItem(imageId, { src: result.url });
 
     if (!coverImage) {
       setCoverImage(result.url);
@@ -265,6 +256,36 @@ export function AdvancedCreateForm() {
   return (
     <main className="min-h-screen bg-[#050816] text-white">
       <div className="mx-auto flex min-h-screen max-w-[1500px] flex-col px-4 py-4">
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            const imageId = pendingImageIdRef.current;
+            if (file && imageId) {
+              void handleImageUploadToSpecific(imageId, file);
+            }
+            e.currentTarget.value = "";
+            pendingImageIdRef.current = null;
+          }}
+        />
+
+        <input
+          ref={replaceCoverInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              void handleCoverUpload(file);
+            }
+            e.currentTarget.value = "";
+          }}
+        />
+
         <div className="mb-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-3 backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-3">
             {editorTemplates.map((tpl) => (
@@ -281,40 +302,6 @@ export function AdvancedCreateForm() {
                 {tpl.name}
               </button>
             ))}
-
-            <div className="mx-2 h-8 w-px bg-white/10" />
-
-            <button
-              type="button"
-              onClick={addTextBlock}
-              className="rounded-full bg-white/10 px-4 py-2 text-sm"
-            >
-              + Text
-            </button>
-
-            <button
-              type="button"
-              onClick={addEmojiBlock}
-              className="rounded-full bg-white/10 px-4 py-2 text-sm"
-            >
-              + Emoji
-            </button>
-
-            <button
-              type="button"
-              onClick={addEmptyImageBlock}
-              className="rounded-full bg-white/10 px-4 py-2 text-sm"
-            >
-              + Image box
-            </button>
-
-            <button
-              type="button"
-              onClick={deleteSelected}
-              className="rounded-full bg-red-500/20 px-4 py-2 text-sm text-red-200"
-            >
-              Delete
-            </button>
 
             <div className="ml-auto flex flex-wrap gap-3">
               <button
@@ -344,42 +331,61 @@ export function AdvancedCreateForm() {
             <LayoutEditor
               items={items}
               background={template.background}
+              coverImage={coverImage}
               onChange={setItems}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              onImageClick={(id) => {
+                pendingImageIdRef.current = id;
+                imageInputRef.current?.click();
+              }}
             />
           </div>
 
           <div className="space-y-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
             <h2 className="text-lg font-bold">Editor tools</h2>
 
-            <label className="block cursor-pointer rounded-2xl bg-white/10 px-4 py-3 text-sm">
-              Upload / replace cover image
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleCoverUpload(file);
-                }}
-              />
-            </label>
+            <div className="grid gap-3">
+              <button
+                type="button"
+                onClick={addTextBlock}
+                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+              >
+                + Add text
+              </button>
 
-            {selected?.type === "image" ? (
-              <label className="block cursor-pointer rounded-2xl bg-white/10 px-4 py-3 text-sm">
-                Fill selected image
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void handleImageUploadToSelected(file);
-                  }}
-                />
-              </label>
-            ) : null}
+              <button
+                type="button"
+                onClick={addEmojiBlock}
+                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+              >
+                + Add emoji
+              </button>
+
+              <button
+                type="button"
+                onClick={addEmptyImageBlock}
+                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+              >
+                + Add image box
+              </button>
+
+              <button
+                type="button"
+                onClick={deleteSelected}
+                className="w-full rounded-2xl bg-red-500/20 px-4 py-3 text-left text-sm font-medium text-red-200 transition hover:bg-red-500/30"
+              >
+                Delete selected item
+              </button>
+
+              <button
+                type="button"
+                onClick={() => replaceCoverInputRef.current?.click()}
+                className="w-full rounded-2xl bg-gradient-to-r from-pink-500/20 to-violet-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-pink-500/30 hover:to-violet-500/30"
+              >
+                Upload cover image
+              </button>
+            </div>
 
             {selected?.type === "text" ? (
               <div className="space-y-3 rounded-2xl border border-pink-400/20 bg-pink-500/10 p-4">
@@ -429,16 +435,6 @@ export function AdvancedCreateForm() {
               </div>
             ) : null}
 
-            {detailsSaved ? (
-              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-200">
-                URL details saved successfully.
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                Click <span className="font-semibold text-white">Customize URL</span> before publishing.
-              </div>
-            )}
-
             {error ? (
               <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200">
                 {error}
@@ -484,7 +480,9 @@ export function AdvancedCreateForm() {
               />
 
               <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-                <p className="text-xs uppercase tracking-[0.25em] text-emerald-200">URL preview</p>
+                <p className="text-xs uppercase tracking-[0.25em] text-emerald-200">
+                  URL preview
+                </p>
                 <p className="mt-2 break-all text-sm text-emerald-100">
                   /{urlPreview || "your-custom-link"}
                 </p>
