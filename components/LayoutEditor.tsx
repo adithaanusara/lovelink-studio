@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorItem } from "@/lib/templates";
+import { MemoryBook } from "@/components/MemoryBook";
 
 type AnimationType =
   | "none"
@@ -9,34 +10,71 @@ type AnimationType =
   | "falling-petals"
   | "sparkle-hearts";
 
+type BookData = {
+  enabled: boolean;
+  pageCount: number;
+  currentPage: number;
+  pages: string[];
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
 type Props = {
   items: EditorItem[];
   background: string;
   coverImage?: string;
   animation?: AnimationType;
+  book?: BookData;
+  onBookFlip?: (page: number) => void;
+  onBookPageDoubleClick?: (pageIndex: number) => void;
+  onBookChange?: (patch: Partial<BookData>) => void;
   onChange: (items: EditorItem[]) => void;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onImageClick?: (id: string) => void;
 };
 
-type DragState = {
-  id: string;
-  startX: number;
-  startY: number;
-  itemX: number;
-  itemY: number;
-} | null;
+type DragState =
+  | {
+      kind: "item";
+      id: string;
+      startX: number;
+      startY: number;
+      itemX: number;
+      itemY: number;
+    }
+  | {
+      kind: "book";
+      startX: number;
+      startY: number;
+      itemX: number;
+      itemY: number;
+    }
+  | null;
 
-type ResizeState = {
-  id: string;
-  startX: number;
-  startY: number;
-  itemW: number;
-  itemH: number;
-  itemX: number;
-  itemY: number;
-} | null;
+type ResizeState =
+  | {
+      kind: "item";
+      id: string;
+      startX: number;
+      startY: number;
+      itemW: number;
+      itemH: number;
+      itemX: number;
+      itemY: number;
+    }
+  | {
+      kind: "book";
+      startX: number;
+      startY: number;
+      itemW: number;
+      itemH: number;
+      itemX: number;
+      itemY: number;
+    }
+  | null;
 
 function FallingLayer({ type }: { type: AnimationType }) {
   const particles = useMemo(
@@ -165,6 +203,10 @@ export function LayoutEditor({
   background,
   coverImage,
   animation = "none",
+  book,
+  onBookFlip,
+  onBookPageDoubleClick,
+  onBookChange,
   onChange,
   selectedId,
   onSelect,
@@ -183,29 +225,32 @@ export function LayoutEditor({
       const container = containerRef.current;
       if (!container) return;
 
-      if (dragState) {
+      if (dragState?.kind === "item") {
         const item = items.find((x) => x.id === dragState.id);
         if (!item) return;
 
         const dx = e.clientX - dragState.startX;
         const dy = e.clientY - dragState.startY;
 
-        const nextX = Math.max(
-          0,
-          Math.min(dragState.itemX + dx, container.clientWidth - item.w)
-        );
-        const nextY = Math.max(
-          0,
-          Math.min(dragState.itemY + dy, container.clientHeight - item.h)
-        );
+        const nextX = Math.max(0, Math.min(dragState.itemX + dx, container.clientWidth - item.w));
+        const nextY = Math.max(0, Math.min(dragState.itemY + dy, container.clientHeight - item.h));
 
         updateItem(dragState.id, { x: nextX, y: nextY });
       }
 
-      if (resizeState) {
+      if (dragState?.kind === "book" && book && onBookChange) {
+        const dx = e.clientX - dragState.startX;
+        const dy = e.clientY - dragState.startY;
+
+        const nextX = Math.max(0, Math.min(dragState.itemX + dx, container.clientWidth - book.w));
+        const nextY = Math.max(0, Math.min(dragState.itemY + dy, container.clientHeight - book.h));
+
+        onBookChange({ x: nextX, y: nextY });
+      }
+
+      if (resizeState?.kind === "item") {
         const minWidth = 120;
         const minHeight = 60;
-
         const dx = e.clientX - resizeState.startX;
         const dy = e.clientY - resizeState.startY;
 
@@ -213,13 +258,30 @@ export function LayoutEditor({
           minWidth,
           Math.min(resizeState.itemW + dx, container.clientWidth - resizeState.itemX)
         );
-
         const nextH = Math.max(
           minHeight,
           Math.min(resizeState.itemH + dy, container.clientHeight - resizeState.itemY)
         );
 
         updateItem(resizeState.id, { w: nextW, h: nextH });
+      }
+
+      if (resizeState?.kind === "book" && book && onBookChange) {
+        const minWidth = 640;
+        const minHeight = 340;
+        const dx = e.clientX - resizeState.startX;
+        const dy = e.clientY - resizeState.startY;
+
+        const nextW = Math.max(
+          minWidth,
+          Math.min(resizeState.itemW + dx, container.clientWidth - resizeState.itemX)
+        );
+        const nextH = Math.max(
+          minHeight,
+          Math.min(resizeState.itemH + dy, container.clientHeight - resizeState.itemY)
+        );
+
+        onBookChange({ w: nextW, h: nextH });
       }
     };
 
@@ -235,7 +297,7 @@ export function LayoutEditor({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragState, resizeState, items]);
+  }, [dragState, resizeState, items, book, onBookChange]);
 
   return (
     <div
@@ -259,6 +321,70 @@ export function LayoutEditor({
       {animation === "falling-petals" ? <FallingLayer type="falling-petals" /> : null}
       {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
 
+      {book?.enabled ? (
+        <div
+          className="absolute z-[70]"
+          style={{
+            left: book.x,
+            top: book.y,
+            width: book.w
+          }}
+        >
+          <div
+            className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#d6b36d]/20 bg-[#1d1327]/80 px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#f4e7c3] shadow-lg backdrop-blur-md"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setDragState({
+                kind: "book",
+                startX: e.clientX,
+                startY: e.clientY,
+                itemX: book.x,
+                itemY: book.y
+              });
+            }}
+            style={{ cursor: "move" }}
+          >
+            Drag book
+          </div>
+
+          <div style={{ width: book.w, height: book.h }}>
+            <MemoryBook
+              pageCount={book.pageCount}
+              pages={book.pages}
+              editable
+              currentPage={book.currentPage}
+              width={book.w}
+              height={book.h}
+              coverImage={coverImage}
+              title="Our Memory Book"
+              onCurrentPageChange={(page) => onBookFlip?.(page)}
+              onUploadPage={(pageIndex) => onBookPageDoubleClick?.(pageIndex)}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="absolute bottom-0 right-0 z-[80] h-5 w-5 rounded-full bg-pink-500 shadow-lg"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setResizeState({
+                kind: "book",
+                startX: e.clientX,
+                startY: e.clientY,
+                itemW: book.w,
+                itemH: book.h,
+                itemX: book.x,
+                itemY: book.y
+              });
+            }}
+            style={{
+              transform: "translate(40%, 40%)",
+              cursor: "nwse-resize"
+            }}
+          />
+        </div>
+      ) : null}
+
       {items
         .slice()
         .sort((a, b) => a.z - b.z)
@@ -280,6 +406,7 @@ export function LayoutEditor({
               e.stopPropagation();
               onSelect(item.id);
               setDragState({
+                kind: "item",
                 id: item.id,
                 startX: e.clientX,
                 startY: e.clientY,
@@ -333,6 +460,7 @@ export function LayoutEditor({
                 e.stopPropagation();
                 onSelect(item.id);
                 setResizeState({
+                  kind: "item",
                   id: item.id,
                   startX: e.clientX,
                   startY: e.clientY,

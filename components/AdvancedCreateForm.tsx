@@ -10,6 +10,17 @@ type AnimationType =
   | "falling-petals"
   | "sparkle-hearts";
 
+type BookData = {
+  enabled: boolean;
+  pageCount: number;
+  currentPage: number;
+  pages: string[];
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
 async function uploadToCloudinary(file: File) {
   const formData = new FormData();
   formData.append("file", file);
@@ -55,6 +66,18 @@ export function AdvancedCreateForm() {
 
   const [animation, setAnimation] = useState<AnimationType>("none");
 
+  const [book, setBook] = useState<BookData>({
+    enabled: false,
+    pageCount: 3,
+    currentPage: -1,
+    pages: ["", "", ""],
+    x: 140,
+    y: 230,
+    w: 820,
+    h: 440
+  });
+  const [showBookOptions, setShowBookOptions] = useState(false);
+
   const [shareUrl, setShareUrl] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -63,6 +86,9 @@ export function AdvancedCreateForm() {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const replaceCoverInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageIdRef = useRef<string | null>(null);
+
+  const bookImageInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingBookPageRef = useRef<number | null>(null);
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -109,7 +135,6 @@ export function AdvancedCreateForm() {
 
   useEffect(() => {
     if (template.id !== "romantic-hero") return;
-
     setItems((current) => makeHeroImageSameAsTitle(current));
   }, [template.id]);
 
@@ -193,6 +218,41 @@ export function AdvancedCreateForm() {
     }
   };
 
+  const createBook = (pageCount: 3 | 5 | 7) => {
+    setBook({
+      enabled: true,
+      pageCount,
+      currentPage: -1,
+      pages: Array.from({ length: pageCount }, () => ""),
+      x: 140,
+      y: 230,
+      w: 820,
+      h: 440
+    });
+    setShowBookOptions(false);
+  };
+
+  const handleBookFlip = (page: number) => {
+    setBook((current) => ({
+      ...current,
+      currentPage: page
+    }));
+  };
+
+  const handleBookPageUpload = async (pageIndex: number, file: File) => {
+    const result = await uploadToCloudinary(file);
+
+    setBook((current) => {
+      const nextPages = [...current.pages];
+      nextPages[pageIndex] = result.url;
+
+      return {
+        ...current,
+        pages: nextPages
+      };
+    });
+  };
+
   const handleSaveDetails = () => {
     if (!recipient.trim()) {
       setError("Enter recipient name");
@@ -264,7 +324,8 @@ export function AdvancedCreateForm() {
             templateId: template.id,
             background: template.background,
             items,
-            animation
+            animation,
+            book
           }
         })
       });
@@ -322,6 +383,24 @@ export function AdvancedCreateForm() {
           }}
         />
 
+        <input
+          ref={bookImageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            const pageIndex = pendingBookPageRef.current;
+
+            if (file && pageIndex !== null) {
+              void handleBookPageUpload(pageIndex, file);
+            }
+
+            e.currentTarget.value = "";
+            pendingBookPageRef.current = null;
+          }}
+        />
+
         <div className="mb-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-3 backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-3">
             {editorTemplates.map((tpl) => (
@@ -369,6 +448,18 @@ export function AdvancedCreateForm() {
               background={template.background}
               coverImage={coverImage}
               animation={animation}
+              book={book}
+              onBookFlip={handleBookFlip}
+              onBookChange={(patch) =>
+                setBook((current) => ({
+                  ...current,
+                  ...patch
+                }))
+              }
+              onBookPageDoubleClick={(pageIndex) => {
+                pendingBookPageRef.current = pageIndex;
+                bookImageInputRef.current?.click();
+              }}
               onChange={setItems}
               selectedId={selectedId}
               onSelect={setSelectedId}
@@ -446,6 +537,52 @@ export function AdvancedCreateForm() {
                 <option value="falling-petals">Falling petals</option>
                 <option value="sparkle-hearts">Sparkle hearts</option>
               </select>
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <button
+                type="button"
+                onClick={() => setShowBookOptions((prev) => !prev)}
+                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+              >
+                + Add book
+              </button>
+
+              {showBookOptions ? (
+                <div className="grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => createBook(3)}
+                    className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                  >
+                    3 pages
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => createBook(5)}
+                    className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                  >
+                    5 pages
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => createBook(7)}
+                    className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                  >
+                    7 pages
+                  </button>
+                </div>
+              ) : null}
+
+              {book.enabled ? (
+                <div className="rounded-xl bg-pink-500/10 px-4 py-3 text-sm text-pink-100">
+                  Book enabled: {book.pageCount} pages
+                  <div className="mt-2 text-xs text-pink-200/80">
+                    First screen = cover page. Click cover to open. Arrows = turn pages.
+                    Double click left/right page = add image. Drag book = move. Pink dot = resize.
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {selected?.type === "text" ? (

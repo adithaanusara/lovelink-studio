@@ -1,12 +1,24 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Music4 } from "lucide-react";
+import { MemoryBook } from "@/components/MemoryBook";
 
 type AnimationType =
   | "none"
   | "falling-hearts"
   | "falling-petals"
   | "sparkle-hearts";
+
+type BookData = {
+  enabled: boolean;
+  pageCount: number;
+  currentPage: number;
+  pages: string[];
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
 
 function FallingLayer({ type }: { type: AnimationType }) {
   const particles = Array.from({ length: 42 }, (_, i) => ({
@@ -143,6 +155,7 @@ export default async function MemoryPage({
     | {
         background?: string;
         animation?: AnimationType;
+        book?: BookData;
         items?: Array<{
           id: string;
           type: "text" | "image";
@@ -161,6 +174,7 @@ export default async function MemoryPage({
     | null;
 
   const animation = layout?.animation || "none";
+  const book = layout?.book;
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -185,6 +199,25 @@ export default async function MemoryPage({
         {animation === "falling-hearts" ? <FallingLayer type="falling-hearts" /> : null}
         {animation === "falling-petals" ? <FallingLayer type="falling-petals" /> : null}
         {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
+
+        {book?.enabled ? (
+          <div
+            className="absolute z-[70]"
+            style={{
+              left: book.x,
+              top: book.y,
+              width: book.w
+            }}
+          >
+            <MemoryBook
+              pageCount={book.pageCount}
+              pages={book.pages}
+              currentPage={book.currentPage}
+              width={book.w}
+              height={book.h}
+            />
+          </div>
+        ) : null}
 
         <div className="absolute inset-0 bg-black/10" />
 
