@@ -240,7 +240,7 @@ export function LayoutEditor({
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto h-[560px] w-[900px] overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl"
+      className="relative mx-auto h-[700px] w-[1100px] overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl"
       style={{ background }}
       onMouseDown={() => onSelect(null)}
     >

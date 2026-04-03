@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { editorTemplates, EditorItem, EditorTemplate } from "@/lib/templates";
 import { LayoutEditor } from "@/components/LayoutEditor";
 
@@ -80,11 +80,38 @@ export function AdvancedCreateForm() {
       .join(" ")
   );
 
+  const makeHeroImageSameAsTitle = (sourceItems: EditorItem[]) => {
+    const titleBox = sourceItems.find((item) => item.id === "title");
+    const heroImageBox = sourceItems.find((item) => item.id === "hero-image");
+
+    if (!titleBox || !heroImageBox) return sourceItems;
+
+    return sourceItems.map((item) =>
+      item.id === "hero-image"
+        ? {
+            ...item,
+            w: titleBox.w,
+            h: titleBox.h
+          }
+        : item
+    );
+  };
+
   const handleTemplateSelect = (next: EditorTemplate) => {
+    const nextItems = makeHeroImageSameAsTitle(
+      next.items.map((item) => ({ ...item }))
+    );
+
     setTemplate(next);
-    setItems(next.items.map((item) => ({ ...item })));
+    setItems(nextItems);
     setSelectedId(null);
   };
+
+  useEffect(() => {
+    if (template.id !== "romantic-hero") return;
+
+    setItems((current) => makeHeroImageSameAsTitle(current));
+  }, [template.id]);
 
   const updateItem = (id: string, patch: Partial<EditorItem>) => {
     setItems((current) =>
@@ -98,8 +125,8 @@ export function AdvancedCreateForm() {
       type: "text",
       x: 120,
       y: 120,
-      w: 260,
-      h: 90,
+      w: 360,
+      h: 260,
       z: items.length + 1,
       content: "New text",
       fontSize: 28,
@@ -134,10 +161,10 @@ export function AdvancedCreateForm() {
     const newItem: EditorItem = {
       id: `image-${uid()}`,
       type: "image",
-      x: 220,
-      y: 220,
-      w: 220,
-      h: 220,
+      x: 500,
+      y: 90,
+      w: 400,
+      h: 280,
       z: items.length + 1,
       src: ""
     };
@@ -394,6 +421,14 @@ export function AdvancedCreateForm() {
                 className="w-full rounded-2xl bg-gradient-to-r from-pink-500/20 to-violet-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-pink-500/30 hover:to-violet-500/30"
               >
                 Upload cover image
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setItems((current) => makeHeroImageSameAsTitle(current))}
+                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+              >
+                Make box 2 same as box 1
               </button>
             </div>
 
