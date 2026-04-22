@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Music4 } from "lucide-react";
-import { MemoryBook } from "@/components/MemoryBook";
+import { StorySceneViewer } from "@/components/StorySceneViewer";
+import { BookPageMedia } from "@/components/MemoryBook";
 
 type AnimationType =
   | "none"
@@ -9,130 +10,41 @@ type AnimationType =
   | "falling-petals"
   | "sparkle-hearts";
 
-type BookData = {
-  enabled: boolean;
-  pageCount: number;
-  currentPage: number;
-  pages: string[];
+type LayoutItem = {
+  id: string;
+  type: "text" | "image";
   x: number;
   y: number;
   w: number;
   h: number;
+  content?: string;
+  src?: string;
+  fontSize?: number;
+  color?: string;
+  fontWeight?: number;
+  z?: number;
 };
 
-function FallingLayer({ type }: { type: AnimationType }) {
-  const particles = Array.from({ length: 42 }, (_, i) => ({
-    id: i,
-    left: `${(i * 17) % 100}%`,
-    delay: `${(i % 12) * 0.25}s`,
-    duration: `${4.2 + (i % 5) * 0.55}s`,
-    size: 14 + (i % 6) * 5,
-    drift: -40 + (i % 9) * 10,
-    rotate: 90 + (i % 8) * 35,
-    opacity: 0.35 + (i % 4) * 0.12,
-    symbol: type === "falling-petals" ? "✿" : "♥"
-  }));
+type BookData = {
+  enabled: boolean;
+  pageCount: number;
+  currentPage: number;
+  pages: BookPageMedia[];
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  title?: string;
+};
 
-  if (type !== "falling-hearts" && type !== "falling-petals") return null;
-
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <style>{`
-        @keyframes romantic-fall-public-dense {
-          0% {
-            transform: translate3d(0, -14vh, 0) rotate(0deg) scale(0.85);
-            opacity: 0;
-          }
-          8% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.95;
-          }
-          100% {
-            transform: translate3d(var(--drift), 118vh, 0) rotate(var(--rotate)) scale(1.08);
-            opacity: 0;
-          }
-        }
-      `}</style>
-
-      {particles.map((item) => (
-        <span
-          key={item.id}
-          className="absolute select-none"
-          style={{
-            left: item.left,
-            top: "-16%",
-            fontSize: `${item.size}px`,
-            color: type === "falling-petals" ? "#f9a8d4" : "#fb7185",
-            opacity: item.opacity,
-            animationName: "romantic-fall-public-dense",
-            animationDuration: item.duration,
-            animationDelay: item.delay,
-            animationIterationCount: "infinite",
-            animationTimingFunction: "linear",
-            filter:
-              type === "falling-petals"
-                ? "drop-shadow(0 0 10px rgba(249,168,212,0.35))"
-                : "drop-shadow(0 0 10px rgba(251,113,133,0.35))",
-            ["--drift" as string]: `${item.drift}px`,
-            ["--rotate" as string]: `${item.rotate}deg`
-          }}
-        >
-          {item.symbol}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function SparkleHeartsLayer() {
-  const hearts = Array.from({ length: 28 }, (_, i) => ({
-    id: i,
-    left: `${3 + ((i * 11) % 94)}%`,
-    top: `${4 + ((i * 9) % 88)}%`,
-    delay: `${(i % 8) * 0.18}s`,
-    size: 10 + (i % 5) * 5
-  }));
-
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <style>{`
-        @keyframes sparkle-heart-public-dense {
-          0%, 100% {
-            transform: scale(0.7);
-            opacity: 0.12;
-          }
-          50% {
-            transform: scale(1.35);
-            opacity: 1;
-          }
-        }
-      `}</style>
-
-      {hearts.map((item) => (
-        <span
-          key={item.id}
-          className="absolute select-none"
-          style={{
-            left: item.left,
-            top: item.top,
-            fontSize: `${item.size}px`,
-            color: "#fb7185",
-            animationName: "sparkle-heart-public-dense",
-            animationDuration: "1.5s",
-            animationDelay: item.delay,
-            animationIterationCount: "infinite",
-            animationTimingFunction: "ease-in-out",
-            filter: "drop-shadow(0 0 12px rgba(251,113,133,0.5))"
-          }}
-        >
-          ♥
-        </span>
-      ))}
-    </div>
-  );
-}
+type StoryScene = {
+  id: string;
+  name: string;
+  background: string;
+  backgroundImage?: string;
+  items: LayoutItem[];
+  book?: BookData;
+};
 
 async function getProject(slug: string) {
   return prisma.memoryProject.findUnique({
@@ -153,119 +65,63 @@ export default async function MemoryPage({
 
   const layout = project.layoutJson as
     | {
-        background?: string;
         animation?: AnimationType;
-        book?: BookData;
-        items?: Array<{
-          id: string;
-          type: "text" | "image";
-          x: number;
-          y: number;
-          w: number;
-          h: number;
-          content?: string;
-          src?: string;
-          fontSize?: number;
-          color?: string;
-          fontWeight?: number;
-          z?: number;
-        }>;
+        storyScenes?: StoryScene[];
       }
     | null;
 
   const animation = layout?.animation || "none";
-  const book = layout?.book;
+  const storyScenes = layout?.storyScenes?.filter(
+    (scene) => scene && Array.isArray(scene.items)
+  );
 
   return (
     <main className="min-h-screen bg-black text-white">
-      <section
-        className="relative mx-auto min-h-screen max-w-[1400px] overflow-hidden"
-        style={{
-          background:
-            layout?.background || "linear-gradient(135deg, #12071f 0%, #08122c 100%)"
-        }}
-      >
-        {project.coverImage ? (
-          <>
-            <img
-              src={project.coverImage}
-              alt="Cover background"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-slate-950/45" />
-          </>
-        ) : null}
-
-        {animation === "falling-hearts" ? <FallingLayer type="falling-hearts" /> : null}
-        {animation === "falling-petals" ? <FallingLayer type="falling-petals" /> : null}
-        {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
-
-        {book?.enabled ? (
-          <div
-            className="absolute z-[70]"
-            style={{
-              left: book.x,
-              top: book.y,
-              width: book.w
-            }}
-          >
-            <MemoryBook
-              pageCount={book.pageCount}
-              pages={book.pages}
-              currentPage={book.currentPage}
-              width={book.w}
-              height={book.h}
-            />
+      {storyScenes && storyScenes.length > 0 ? (
+        <StorySceneViewer scenes={storyScenes} animation={animation} />
+      ) : (
+        <section className="mx-auto flex min-h-screen max-w-[1400px] items-center justify-center px-6 text-center">
+          <div className="rounded-[2rem] border border-white/10 bg-white/5 p-10 text-white/80">
+            This page has no scene data.
           </div>
-        ) : null}
+        </section>
+      )}
 
-        <div className="absolute inset-0 bg-black/10" />
-
-        {layout?.items?.map((item) => (
-          <div
-            key={item.id}
-            className="absolute"
-            style={{
-              left: item.x,
-              top: item.y,
-              width: item.w,
-              height: item.h,
-              zIndex: item.z ?? 1
-            }}
-          >
-            {item.type === "text" ? (
-              <div
-                className="whitespace-pre-wrap"
-                style={{
-                  color: item.color || "#fff",
-                  fontSize: item.fontSize || 24,
-                  fontWeight: item.fontWeight || 600
-                }}
-              >
-                {item.content}
+      {(project.musicUrl || project.gallery.length > 0) && (
+        <section className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 px-6 py-12 md:px-10">
+          {project.musicUrl ? (
+            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+              <div className="mb-4 flex items-center gap-3 text-pink-200">
+                <Music4 className="h-5 w-5" />
+                <p className="text-sm uppercase tracking-[0.3em]">Song for this page</p>
               </div>
-            ) : item.src ? (
-              <img
-                src={item.src}
-                alt=""
-                className="h-full w-full rounded-[1.5rem] object-cover shadow-2xl"
-              />
-            ) : null}
-          </div>
-        ))}
+              <audio controls className="w-full" src={project.musicUrl} />
+            </div>
+          ) : null}
 
-        {project.musicUrl ? (
-          <a
-            href={project.musicUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="absolute bottom-8 left-8 inline-flex items-center gap-2 rounded-full bg-pink-500/15 px-5 py-3 text-pink-100 backdrop-blur-md"
-          >
-            <Music4 className="h-4 w-4" />
-            Play our song
-          </a>
-        ) : null}
-      </section>
+          {project.gallery.length > 0 ? (
+            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+              <p className="mb-5 text-sm uppercase tracking-[0.3em] text-pink-200">
+                Gallery memories
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {project.gallery.map((image) => (
+                  <div
+                    key={image.id}
+                    className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5"
+                  >
+                    <img
+                      src={image.imageUrl}
+                      alt={image.altText || "Gallery memory"}
+                      className="h-72 w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </section>
+      )}
     </main>
   );
 }

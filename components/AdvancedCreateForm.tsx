@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { editorTemplates, EditorItem, EditorTemplate } from "@/lib/templates";
 import { LayoutEditor } from "@/components/LayoutEditor";
+import { BookPageMedia } from "@/components/MemoryBook";
 
 type AnimationType =
   | "none"
@@ -14,14 +15,26 @@ type BookData = {
   enabled: boolean;
   pageCount: number;
   currentPage: number;
-  pages: string[];
+  pages: BookPageMedia[];
   x: number;
   y: number;
   w: number;
   h: number;
+  title?: string;
 };
 
-async function uploadToCloudinary(file: File) {
+// add this new one
+type StoryScene = {
+  id: string;
+  name: string;
+  background: string;
+  backgroundImage: string;
+  items: EditorItem[];
+  book?: BookData;
+  gameChallengeTarget?: number | null;
+};
+
+async function uploadMedia(file: File) {
   const formData = new FormData();
   formData.append("file", file);
 
@@ -30,8 +43,12 @@ async function uploadToCloudinary(file: File) {
     body: formData
   });
 
-  if (!response.ok) throw new Error("Image upload failed");
-  return response.json() as Promise<{ url: string }>;
+  if (!response.ok) throw new Error("Media upload failed");
+  return response.json() as Promise<{
+    url: string;
+    resourceType: "image" | "video";
+    poster?: string;
+  }>;
 }
 
 function uid() {
@@ -48,11 +65,49 @@ function slugify(value: string) {
     .replace(/^-|-$/g, "");
 }
 
+function cloneTemplateItems(template: EditorTemplate, sceneIndex: number) {
+  return template.items.map((item) => ({
+    ...item,
+    id: `${item.id}-${sceneIndex}-${uid()}`
+  }));
+}
+
+function createScene(template: EditorTemplate, index: number): StoryScene {
+  return {
+    id: `scene-${index + 1}`,
+    name: `Background ${index + 1}`,
+    background: template.background,
+    backgroundImage: "",
+    items: cloneTemplateItems(template, index),
+
+    // add this new one
+    gameChallengeTarget: index === 2 ? 10 : null
+  };
+}
+
+function makeDefaultBook(title: string, pageCount: 4 | 6 | 8): BookData {
+  return {
+    enabled: true,
+    pageCount,
+    currentPage: -1,
+    pages: Array.from({ length: pageCount }, () => ({
+      type: "image" as const,
+      url: ""
+    })),
+    x: 170,
+    y: 180,
+    w: 760,
+    h: 460,
+    title
+  };
+}
+
 export function AdvancedCreateForm() {
   const [template, setTemplate] = useState<EditorTemplate>(editorTemplates[0]);
-  const [items, setItems] = useState<EditorItem[]>(
-    editorTemplates[0].items.map((item) => ({ ...item }))
+  const [scenes, setScenes] = useState<StoryScene[]>(() =>
+    [0, 1, 2].map((index) => createScene(editorTemplates[0], index))
   );
+  const [activeSceneIndex, setActiveSceneIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [recipient, setRecipient] = useState("");
@@ -60,23 +115,13 @@ export function AdvancedCreateForm() {
   const [occasion, setOccasion] = useState("");
   const [customKeyword, setCustomKeyword] = useState("");
 
-  const [coverImage, setCoverImage] = useState("");
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsSaved, setDetailsSaved] = useState(false);
 
   const [animation, setAnimation] = useState<AnimationType>("none");
 
-  const [book, setBook] = useState<BookData>({
-    enabled: false,
-    pageCount: 3,
-    currentPage: -1,
-    pages: ["", "", ""],
-    x: 140,
-    y: 230,
-    w: 820,
-    h: 440
-  });
   const [showBookOptions, setShowBookOptions] = useState(false);
+  const [bookTitleInput, setBookTitleInput] = useState("Our Memory Book");
 
   const [shareUrl, setShareUrl] = useState("");
   const [error, setError] = useState("");
@@ -84,11 +129,17 @@ export function AdvancedCreateForm() {
   const [copied, setCopied] = useState(false);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const replaceCoverInputRef = useRef<HTMLInputElement | null>(null);
+  const replaceSceneBgInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageIdRef = useRef<string | null>(null);
 
-  const bookImageInputRef = useRef<HTMLInputElement | null>(null);
+  const bookMediaInputRef = useRef<HTMLInputElement | null>(null);
   const pendingBookPageRef = useRef<number | null>(null);
+
+  const activeScene = scenes[activeSceneIndex] ?? scenes[0];
+  const items = activeScene?.items ?? [];
+
+  // add this new one
+  const isGameScene = activeSceneIndex === 2;
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -106,14 +157,50 @@ export function AdvancedCreateForm() {
       .join(" ")
   );
 
+  const updateScenes = (updater: (current: StoryScene[]) => StoryScene[]) => {
+    setScenes((current) => updater(current));
+  };
+
+  const updateActiveScene = (patch: Partial<StoryScene>) => {
+    updateScenes((current) =>
+      current.map((scene, index) =>
+        index === activeSceneIndex ? { ...scene, ...patch } : scene
+      )
+    );
+  };
+
+  const setActiveSceneItems = (nextItems: EditorItem[]) => {
+    updateActiveScene({ items: nextItems });
+  };
+
+  const updateItem = (id: string, patch: Partial<EditorItem>) => {
+    setActiveSceneItems(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  };
+
+  const updateActiveBook = (patch: Partial<BookData>) => {
+    updateScenes((current) =>
+      current.map((scene, index) =>
+        index === activeSceneIndex && scene.book
+          ? {
+              ...scene,
+              book: {
+                ...scene.book,
+                ...patch
+              }
+            }
+          : scene
+      )
+    );
+  };
+
   const makeHeroImageSameAsTitle = (sourceItems: EditorItem[]) => {
-    const titleBox = sourceItems.find((item) => item.id === "title");
-    const heroImageBox = sourceItems.find((item) => item.id === "hero-image");
+    const titleBox = sourceItems.find((item) => item.id.includes("title"));
+    const heroImageBox = sourceItems.find((item) => item.id.includes("hero-image"));
 
     if (!titleBox || !heroImageBox) return sourceItems;
 
     return sourceItems.map((item) =>
-      item.id === "hero-image"
+      item.id === heroImageBox.id
         ? {
             ...item,
             w: titleBox.w,
@@ -124,27 +211,34 @@ export function AdvancedCreateForm() {
   };
 
   const handleTemplateSelect = (next: EditorTemplate) => {
-    const nextItems = makeHeroImageSameAsTitle(
-      next.items.map((item) => ({ ...item }))
-    );
-
     setTemplate(next);
-    setItems(nextItems);
+    setScenes((current) =>
+      current.map((scene, index) => ({
+        ...scene,
+        background: next.background,
+        items: makeHeroImageSameAsTitle(cloneTemplateItems(next, index))
+      }))
+    );
     setSelectedId(null);
   };
 
   useEffect(() => {
     if (template.id !== "romantic-hero") return;
-    setItems((current) => makeHeroImageSameAsTitle(current));
-  }, [template.id]);
+    setActiveSceneItems(makeHeroImageSameAsTitle(items));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template.id, activeSceneIndex]);
 
-  const updateItem = (id: string, patch: Partial<EditorItem>) => {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...patch } : item))
-    );
-  };
+  useEffect(() => {
+    if (activeScene.book?.title) {
+      setBookTitleInput(activeScene.book.title);
+    } else {
+      setBookTitleInput(`${activeScene.name} Memory Book`);
+    }
+  }, [activeScene.book?.title, activeScene.name]);
 
   const addTextBlock = () => {
+    if (isGameScene) return;
+
     const newItem: EditorItem = {
       id: `text-${uid()}`,
       type: "text",
@@ -159,11 +253,13 @@ export function AdvancedCreateForm() {
       fontWeight: 700
     };
 
-    setItems((current) => [...current, newItem]);
+    setActiveSceneItems([...items, newItem]);
     setSelectedId(newItem.id);
   };
 
   const addEmojiBlock = () => {
+    if (isGameScene) return;
+
     const newItem: EditorItem = {
       id: `emoji-${uid()}`,
       type: "text",
@@ -178,11 +274,13 @@ export function AdvancedCreateForm() {
       fontWeight: 400
     };
 
-    setItems((current) => [...current, newItem]);
+    setActiveSceneItems([...items, newItem]);
     setSelectedId(newItem.id);
   };
 
   const addEmptyImageBlock = () => {
+    if (isGameScene) return;
+
     const newItem: EditorItem = {
       id: `image-${uid()}`,
       type: "image",
@@ -194,62 +292,95 @@ export function AdvancedCreateForm() {
       src: ""
     };
 
-    setItems((current) => [...current, newItem]);
+    setActiveSceneItems([...items, newItem]);
     setSelectedId(newItem.id);
   };
 
   const deleteSelected = () => {
+    if (isGameScene) return;
+
     if (!selectedId) return;
-    setItems((current) => current.filter((item) => item.id !== selectedId));
+    setActiveSceneItems(items.filter((item) => item.id !== selectedId));
     setSelectedId(null);
   };
 
-  const handleCoverUpload = async (file: File) => {
-    const result = await uploadToCloudinary(file);
-    setCoverImage(result.url);
+  const handleSceneBackgroundUpload = async (file: File) => {
+    if (isGameScene) return;
+
+    const result = await uploadMedia(file);
+    updateActiveScene({ backgroundImage: result.url });
   };
 
   const handleImageUploadToSpecific = async (imageId: string, file: File) => {
-    const result = await uploadToCloudinary(file);
+    if (isGameScene) return;
+
+    const result = await uploadMedia(file);
+    if (result.resourceType !== "image") {
+      setError("Only images can be added to normal image boxes.");
+      return;
+    }
+
     updateItem(imageId, { src: result.url });
 
-    if (!coverImage) {
-      setCoverImage(result.url);
+    if (!activeScene.backgroundImage) {
+      updateActiveScene({ backgroundImage: result.url });
     }
   };
 
-  const createBook = (pageCount: 3 | 5 | 7) => {
-    setBook({
-      enabled: true,
-      pageCount,
-      currentPage: -1,
-      pages: Array.from({ length: pageCount }, () => ""),
-      x: 140,
-      y: 230,
-      w: 820,
-      h: 440
+  const createBook = (pageCount: 4 | 6 | 8) => {
+    if (isGameScene) return;
+
+    updateActiveScene({
+      book: makeDefaultBook(bookTitleInput || `${activeScene.name} Memory Book`, pageCount)
     });
     setShowBookOptions(false);
   };
 
+  const removeBook = () => {
+    if (isGameScene) return;
+
+    updateActiveScene({ book: undefined });
+    setShowBookOptions(false);
+  };
+
   const handleBookFlip = (page: number) => {
-    setBook((current) => ({
-      ...current,
-      currentPage: page
-    }));
+    if (isGameScene) return;
+
+    if (!activeScene.book) return;
+    updateActiveBook({ currentPage: page });
   };
 
   const handleBookPageUpload = async (pageIndex: number, file: File) => {
-    const result = await uploadToCloudinary(file);
+    if (isGameScene) return;
 
-    setBook((current) => {
-      const nextPages = [...current.pages];
-      nextPages[pageIndex] = result.url;
+    const result = await uploadMedia(file);
+    if (!activeScene.book) return;
 
-      return {
-        ...current,
-        pages: nextPages
-      };
+    const nextPages = [...activeScene.book.pages];
+    nextPages[pageIndex] = {
+      type: result.resourceType === "video" ? "video" : "image",
+      url: result.url,
+      poster: result.poster
+    };
+
+    updateActiveBook({ pages: nextPages });
+  };
+
+  // add this new one
+  const handleChallengeTargetChange = (value: string) => {
+    const trimmed = value.trim();
+
+    if (trimmed === "") {
+      updateActiveScene({ gameChallengeTarget: null });
+      return;
+    }
+
+    const numeric = Number(trimmed);
+
+    if (!Number.isFinite(numeric)) return;
+
+    updateActiveScene({
+      gameChallengeTarget: Math.max(1, Math.floor(numeric))
     });
   };
 
@@ -284,8 +415,10 @@ export function AdvancedCreateForm() {
       return;
     }
 
-    if (!coverImage.trim()) {
-      setError("Upload at least one image");
+    const hasGameScene = scenes.length >= 3;
+
+    if (!hasGameScene && !scenes.some((scene) => scene.backgroundImage.trim())) {
+      setError("Upload at least one background image");
       return;
     }
 
@@ -312,20 +445,35 @@ export function AdvancedCreateForm() {
           musicUrl: "",
           eventDate: "",
           theme: "romantic",
-          coverImage,
+          coverImage:
+            scenes[0]?.backgroundImage ||
+            scenes[0]?.items.find((item) => item.type === "image" && item.src)?.src ||
+            "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80",
           customSlugBase: urlPreview,
-          gallery: items
-            .filter((item) => item.type === "image" && item.src)
-            .map((item) => ({
-              imageUrl: item.src as string,
-              altText: item.id
-            })),
+          gallery: scenes.flatMap((scene, sceneIndex) => [
+            ...(sceneIndex === 2
+              ? []
+              : scene.items
+                  .filter((item) => item.type === "image" && item.src)
+                  .map((item) => ({
+                    imageUrl: item.src as string,
+                    altText: item.id
+                  }))),
+            ...(sceneIndex === 2
+              ? []
+              : scene.book?.pages
+                  .filter((page) => page.type === "image" && page.url)
+                  .map((page, index) => ({
+                    imageUrl: page.url,
+                    altText: `${scene.name}-book-page-${index + 1}`
+                  })) || [])
+          ]),
           layoutJson: {
             templateId: template.id,
             background: template.background,
-            items,
+            items: scenes[0]?.items ?? [],
             animation,
-            book
+            storyScenes: scenes
           }
         })
       });
@@ -370,23 +518,23 @@ export function AdvancedCreateForm() {
         />
 
         <input
-          ref={replaceCoverInputRef}
+          ref={replaceSceneBgInputRef}
           type="file"
           accept="image/*"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
-              void handleCoverUpload(file);
+              void handleSceneBackgroundUpload(file);
             }
             e.currentTarget.value = "";
           }}
         />
 
         <input
-          ref={bookImageInputRef}
+          ref={bookMediaInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -441,197 +589,274 @@ export function AdvancedCreateForm() {
           </div>
         </div>
 
+        <div className="mb-4 flex flex-wrap gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-3">
+          {scenes.map((scene, index) => (
+            <button
+              key={scene.id}
+              type="button"
+              onClick={() => {
+                setActiveSceneIndex(index);
+                setSelectedId(null);
+                setError("");
+                setShowBookOptions(false);
+              }}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                index === activeSceneIndex
+                  ? "bg-gradient-to-r from-pink-500 to-violet-600 text-white"
+                  : "bg-white/10 text-white/80 hover:bg-white/15"
+              }`}
+            >
+              {scene.name}
+            </button>
+          ))}
+        </div>
+
         <div className="grid flex-1 gap-4 lg:grid-cols-[1fr_320px]">
-          <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
+          <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
             <LayoutEditor
+              key={activeScene.id}
               items={items}
-              background={template.background}
-              coverImage={coverImage}
+              background={activeScene.background}
+              coverImage={activeScene.backgroundImage}
               animation={animation}
-              book={book}
+              book={activeScene.book}
               onBookFlip={handleBookFlip}
-              onBookChange={(patch) =>
-                setBook((current) => ({
-                  ...current,
-                  ...patch
-                }))
-              }
+              onBookChange={updateActiveBook}
               onBookPageDoubleClick={(pageIndex) => {
                 pendingBookPageRef.current = pageIndex;
-                bookImageInputRef.current?.click();
+                bookMediaInputRef.current?.click();
               }}
-              onChange={setItems}
+              onChange={setActiveSceneItems}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onImageClick={(id) => {
                 pendingImageIdRef.current = id;
                 imageInputRef.current?.click();
               }}
+              isGameScene={isGameScene}
+
+              // add this new one
+              challengeTarget={activeScene.gameChallengeTarget ?? null}
             />
           </div>
 
           <div className="space-y-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
             <h2 className="text-lg font-bold">Editor tools</h2>
 
-            <div className="grid gap-3">
-              <button
-                type="button"
-                onClick={addTextBlock}
-                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
-              >
-                + Add text
-              </button>
+            {isGameScene ? (
+              <>
+                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+                  Background 3 is reserved for the full-screen bird game. Text boxes, image boxes, and memory books are disabled for this scene.
+                </div>
 
-              <button
-                type="button"
-                onClick={addEmojiBlock}
-                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
-              >
-                + Add emoji
-              </button>
+                {/* add this new one */}
+                <div className="space-y-3 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
+                  <h3 className="text-base font-bold text-yellow-100">
+                    Challenge: How many pipes can you pass?
+                  </h3>
 
-              <button
-                type="button"
-                onClick={addEmptyImageBlock}
-                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
-              >
-                + Add image box
-              </button>
+                  <p className="text-sm text-yellow-50/90">
+                    Enter a target number of pipes for the player to pass.
+                  </p>
 
-              <button
-                type="button"
-                onClick={deleteSelected}
-                className="w-full rounded-2xl bg-red-500/20 px-4 py-3 text-left text-sm font-medium text-red-200 transition hover:bg-red-500/30"
-              >
-                Delete selected item
-              </button>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={activeScene.gameChallengeTarget ?? ""}
+                    onChange={(e) => handleChallengeTargetChange(e.target.value)}
+                    placeholder="e.g. 30"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none"
+                  />
 
-              <button
-                type="button"
-                onClick={() => replaceCoverInputRef.current?.click()}
-                className="w-full rounded-2xl bg-gradient-to-r from-pink-500/20 to-violet-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-pink-500/30 hover:to-violet-500/30"
-              >
-                Upload cover image
-              </button>
+                  <p className="text-xs text-yellow-50/75">
+                    Example: If you enter 30, the mission is passed when the score reaches 30.
+                  </p>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => setItems((current) => makeHeroImageSameAsTitle(current))}
-                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
-              >
-                Make box 2 same as box 1
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <label className="mb-2 block text-sm font-semibold text-white">
-                Animation selector
-              </label>
-              <select
-                value={animation}
-                onChange={(e) => setAnimation(e.target.value as AnimationType)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-white outline-none"
-              >
-                <option value="none">No animation</option>
-                <option value="falling-hearts">Falling hearts</option>
-                <option value="falling-petals">Falling petals</option>
-                <option value="sparkle-hearts">Sparkle hearts</option>
-              </select>
-            </div>
-
-            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <button
-                type="button"
-                onClick={() => setShowBookOptions((prev) => !prev)}
-                className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
-              >
-                + Add book
-              </button>
-
-              {showBookOptions ? (
-                <div className="grid gap-2">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <label className="mb-2 block text-sm font-semibold text-white">Animation selector</label>
+                  <select
+                    value={animation}
+                    onChange={(e) => setAnimation(e.target.value as AnimationType)}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-white outline-none"
+                  >
+                    <option value="none">No animation</option>
+                    <option value="falling-hearts">Falling hearts</option>
+                    <option value="falling-petals">Falling petals</option>
+                    <option value="sparkle-hearts">Sparkle hearts</option>
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid gap-3">
                   <button
                     type="button"
-                    onClick={() => createBook(3)}
-                    className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                    onClick={addTextBlock}
+                    className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
                   >
-                    3 pages
+                    + Add text
                   </button>
+
                   <button
                     type="button"
-                    onClick={() => createBook(5)}
-                    className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                    onClick={addEmojiBlock}
+                    className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
                   >
-                    5 pages
+                    + Add emoji
                   </button>
+
                   <button
                     type="button"
-                    onClick={() => createBook(7)}
-                    className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                    onClick={addEmptyImageBlock}
+                    className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
                   >
-                    7 pages
+                    + Add image box
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={deleteSelected}
+                    className="w-full rounded-2xl bg-red-500/20 px-4 py-3 text-left text-sm font-medium text-red-200 transition hover:bg-red-500/30"
+                  >
+                    Delete selected item
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => replaceSceneBgInputRef.current?.click()}
+                    className="w-full rounded-2xl bg-gradient-to-r from-pink-500/20 to-violet-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-pink-500/30 hover:to-violet-500/30"
+                  >
+                    Upload {activeScene.name.toLowerCase()} Image
                   </button>
                 </div>
-              ) : null}
 
-              {book.enabled ? (
-                <div className="rounded-xl bg-pink-500/10 px-4 py-3 text-sm text-pink-100">
-                  Book enabled: {book.pageCount} pages
-                  <div className="mt-2 text-xs text-pink-200/80">
-                    First screen = cover page. Click cover to open. Arrows = turn pages.
-                    Double click left/right page = add image. Drag book = move. Pink dot = resize.
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <label className="mb-2 block text-sm font-semibold text-white">Animation selector</label>
+                  <select
+                    value={animation}
+                    onChange={(e) => setAnimation(e.target.value as AnimationType)}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-white outline-none"
+                  >
+                    <option value="none">No animation</option>
+                    <option value="falling-hearts">Falling hearts</option>
+                    <option value="falling-petals">Falling petals</option>
+                    <option value="sparkle-hearts">Sparkle hearts</option>
+                  </select>
+                </div>
+
+                <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-3">
+                    <label className="mb-2 block text-sm font-semibold text-white">Book title</label>
+                    <input
+                      value={bookTitleInput}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setBookTitleInput(value);
+                        if (activeScene.book) {
+                          updateActiveBook({ title: value });
+                        }
+                      }}
+                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none"
+                      placeholder="Our Memory Book"
+                    />
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowBookOptions((prev) => !prev)}
+                    className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+                  >
+                    {activeScene.book?.enabled ? "Edit memory book" : `+ Add book to ${activeScene.name}`}
+                  </button>
+
+                  {showBookOptions ? (
+                    <div className="grid gap-2">
+                      <button
+                        type="button"
+                        onClick={() => createBook(4)}
+                        className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                      >
+                        4 pages
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => createBook(6)}
+                        className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                      >
+                        6 pages
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => createBook(8)}
+                        className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                      >
+                        8 pages
+                      </button>
+
+                      {activeScene.book?.enabled ? (
+                        <button
+                          type="button"
+                          onClick={removeBook}
+                          className="w-full rounded-xl bg-red-500/20 px-4 py-3 text-left text-sm text-red-200"
+                        >
+                          Remove book from this background
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
 
-            {selected?.type === "text" ? (
-              <div className="space-y-3 rounded-2xl border border-pink-400/20 bg-pink-500/10 p-4">
-                <p className="font-semibold">Selected text block</p>
+                {selected?.type === "text" ? (
+                  <div className="grid gap-3 rounded-2xl border border-pink-500/20 bg-pink-500/10 p-4">
+                    <p className="font-semibold">Selected text block</p>
 
-                <textarea
-                  value={selected.content ?? ""}
-                  onChange={(e) => updateItem(selected.id, { content: e.target.value })}
-                  className="min-h-24 w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
-                />
+                    <textarea
+                      value={selected.content ?? ""}
+                      onChange={(e) => updateItem(selected.id, { content: e.target.value })}
+                      className="min-h-24 w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
+                    />
 
-                <label className="grid gap-2 text-sm text-slate-300">
-                  Font size
-                  <input
-                    type="range"
-                    min={16}
-                    max={72}
-                    value={selected.fontSize ?? 24}
-                    onChange={(e) =>
-                      updateItem(selected.id, { fontSize: Number(e.target.value) })
-                    }
-                  />
-                </label>
+                    <label className="grid gap-2 text-sm text-slate-300">
+                      Font size
+                      <input
+                        type="range"
+                        min={16}
+                        max={72}
+                        value={selected.fontSize ?? 24}
+                        onChange={(e) =>
+                          updateItem(selected.id, { fontSize: Number(e.target.value) })
+                        }
+                      />
+                    </label>
 
-                <label className="grid gap-2 text-sm text-slate-300">
-                  Color
-                  <input
-                    type="color"
-                    value={selected.color ?? "#ffffff"}
-                    onChange={(e) => updateItem(selected.id, { color: e.target.value })}
-                  />
-                </label>
+                    <label className="grid gap-2 text-sm text-slate-300">
+                      Color
+                      <input
+                        type="color"
+                        value={selected.color ?? "#ffffff"}
+                        onChange={(e) => updateItem(selected.id, { color: e.target.value })}
+                      />
+                    </label>
 
-                <label className="grid gap-2 text-sm text-slate-300">
-                  Weight
-                  <input
-                    type="range"
-                    min={300}
-                    max={900}
-                    step={100}
-                    value={selected.fontWeight ?? 700}
-                    onChange={(e) =>
-                      updateItem(selected.id, { fontWeight: Number(e.target.value) })
-                    }
-                  />
-                </label>
-              </div>
-            ) : null}
+                    <label className="grid gap-2 text-sm text-slate-300">
+                      Weight
+                      <input
+                        type="range"
+                        min={300}
+                        max={900}
+                        step={100}
+                        value={selected.fontWeight ?? 700}
+                        onChange={(e) =>
+                          updateItem(selected.id, { fontWeight: Number(e.target.value) })
+                        }
+                      />
+                    </label>
+                  </div>
+                ) : null}
+              </>
+            )}
 
             {error ? (
               <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200">
@@ -643,7 +868,7 @@ export function AdvancedCreateForm() {
       </div>
 
       {showDetailsModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[#0b1226] p-6 shadow-2xl">
             <p className="text-sm uppercase tracking-[0.3em] text-pink-200">Customize URL</p>
             <h3 className="mt-3 text-3xl font-bold text-white">Create a beautiful share link</h3>
@@ -678,9 +903,7 @@ export function AdvancedCreateForm() {
               />
 
               <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-                <p className="text-xs uppercase tracking-[0.25em] text-emerald-200">
-                  URL preview
-                </p>
+                <p className="text-xs uppercase tracking-[0.25em] text-emerald-200">URL preview</p>
                 <p className="mt-2 break-all text-sm text-emerald-100">
                   /{urlPreview || "your-custom-link"}
                 </p>
@@ -709,7 +932,7 @@ export function AdvancedCreateForm() {
       ) : null}
 
       {shareUrl ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-xl rounded-[2rem] border border-emerald-400/20 bg-[#0b1226] p-6 shadow-2xl">
             <p className="text-center text-sm uppercase tracking-[0.3em] text-emerald-200">
               Ready to share

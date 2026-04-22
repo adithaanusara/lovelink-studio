@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorItem } from "@/lib/templates";
-import { MemoryBook } from "@/components/MemoryBook";
+import { MemoryBook, BookPageMedia } from "@/components/MemoryBook";
+import { FlappyBirdScene } from "@/components/FlappyBirdScene";
 
 type AnimationType =
   | "none"
@@ -14,11 +15,12 @@ type BookData = {
   enabled: boolean;
   pageCount: number;
   currentPage: number;
-  pages: string[];
+  pages: BookPageMedia[];
   x: number;
   y: number;
   w: number;
   h: number;
+  title?: string;
 };
 
 type Props = {
@@ -34,6 +36,10 @@ type Props = {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onImageClick?: (id: string) => void;
+  isGameScene?: boolean;
+
+  // add this new one
+  challengeTarget?: number | null;
 };
 
 type DragState =
@@ -96,7 +102,7 @@ function FallingLayer({ type }: { type: AnimationType }) {
   if (type !== "falling-hearts" && type !== "falling-petals") return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
       <style>{`
         @keyframes romantic-fall-dense {
           0% {
@@ -160,7 +166,7 @@ function SparkleHeartsLayer() {
   );
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
       <style>{`
         @keyframes sparkle-heart-dense {
           0%, 100% {
@@ -210,7 +216,11 @@ export function LayoutEditor({
   onChange,
   selectedId,
   onSelect,
-  onImageClick
+  onImageClick,
+  isGameScene = false,
+
+  // add this new one
+  challengeTarget = null
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<DragState>(null);
@@ -221,6 +231,8 @@ export function LayoutEditor({
   };
 
   useEffect(() => {
+    if (isGameScene) return;
+
     const handleMouseMove = (e: MouseEvent) => {
       const container = containerRef.current;
       if (!container) return;
@@ -267,8 +279,8 @@ export function LayoutEditor({
       }
 
       if (resizeState?.kind === "book" && book && onBookChange) {
-        const minWidth = 640;
-        const minHeight = 340;
+        const minWidth = 360;
+        const minHeight = 240;
         const dx = e.clientX - resizeState.startX;
         const dy = e.clientY - resizeState.startY;
 
@@ -297,183 +309,180 @@ export function LayoutEditor({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragState, resizeState, items, book, onBookChange]);
+  }, [dragState, resizeState, items, book, onBookChange, isGameScene]);
 
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto h-[700px] w-[1100px] overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl"
+      className="relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"
       style={{ background }}
       onMouseDown={() => onSelect(null)}
     >
-      {coverImage ? (
+      {isGameScene ? (
+        <FlappyBirdScene
+
+          // add this new one
+          challengeTarget={challengeTarget}
+        />
+      ) : (
         <>
-          <img
-            src={coverImage}
-            alt="Cover background"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-slate-950/45" />
-        </>
-      ) : null}
+          {coverImage ? (
+            <>
+              <img
+                src={coverImage}
+                alt="Editor background"
+                className="absolute inset-0 z-0 h-full w-full object-cover"
+                draggable={false}
+              />
+              <div className="absolute inset-0 z-0 bg-slate-950/40" />
+            </>
+          ) : null}
 
-      {animation === "falling-hearts" ? <FallingLayer type="falling-hearts" /> : null}
-      {animation === "falling-petals" ? <FallingLayer type="falling-petals" /> : null}
-      {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
+          {animation === "falling-hearts" ? <FallingLayer type="falling-hearts" /> : null}
+          {animation === "falling-petals" ? <FallingLayer type="falling-petals" /> : null}
+          {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
 
-      {book?.enabled ? (
-        <div
-          className="absolute z-[70]"
-          style={{
-            left: book.x,
-            top: book.y,
-            width: book.w
-          }}
-        >
-          <div
-            className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#d6b36d]/20 bg-[#1d1327]/80 px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#f4e7c3] shadow-lg backdrop-blur-md"
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              setDragState({
-                kind: "book",
-                startX: e.clientX,
-                startY: e.clientY,
-                itemX: book.x,
-                itemY: book.y
-              });
-            }}
-            style={{ cursor: "move" }}
-          >
-            Drag book
-          </div>
+          {items
+            .slice()
+            .sort((a, b) => a.z - b.z)
+            .map((item) => {
+              const isSelected = selectedId === item.id;
 
-          <div style={{ width: book.w, height: book.h }}>
-            <MemoryBook
-              pageCount={book.pageCount}
-              pages={book.pages}
-              editable
-              currentPage={book.currentPage}
-              width={book.w}
-              height={book.h}
-              coverImage={coverImage}
-              title="Our Memory Book"
-              onCurrentPageChange={(page) => onBookFlip?.(page)}
-              onUploadPage={(pageIndex) => onBookPageDoubleClick?.(pageIndex)}
-            />
-          </div>
+              return (
+                <div
+                  key={item.id}
+                  className={`absolute z-[10] ${item.type === "image" ? "overflow-hidden" : ""}`}
+                  style={{
+                    left: item.x,
+                    top: item.y,
+                    width: item.w,
+                    height: item.h
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    onSelect(item.id);
+                    setDragState({
+                      kind: "item",
+                      id: item.id,
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      itemX: item.x,
+                      itemY: item.y
+                    });
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if (item.type === "image") {
+                      onImageClick?.(item.id);
+                    }
+                  }}
+                >
+                  {item.type === "text" ? (
+                    <div
+                      className="h-full w-full whitespace-pre-wrap rounded-2xl px-2 py-1"
+                      style={{
+                        fontSize: item.fontSize ?? 24,
+                        color: item.color ?? "#ffffff",
+                        fontWeight: item.fontWeight ?? 700,
+                        textShadow: "0 6px 30px rgba(0,0,0,0.35)"
+                      }}
+                    >
+                      {item.content}
+                    </div>
+                  ) : item.src ? (
+                    <img
+                      src={item.src}
+                      alt="Editor block"
+                      className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+                      draggable={false}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center rounded-[1.75rem] border border-dashed border-white/30 bg-black/20 text-center text-sm text-white/70">
+                      Double click to add image
+                    </div>
+                  )}
 
-          <button
-            type="button"
-            className="absolute bottom-0 right-0 z-[80] h-5 w-5 rounded-full bg-pink-500 shadow-lg"
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              setResizeState({
-                kind: "book",
-                startX: e.clientX,
-                startY: e.clientY,
-                itemW: book.w,
-                itemH: book.h,
-                itemX: book.x,
-                itemY: book.y
-              });
-            }}
-            style={{
-              transform: "translate(40%, 40%)",
-              cursor: "nwse-resize"
-            }}
-          />
-        </div>
-      ) : null}
+                  {isSelected ? (
+                    <>
+                      <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] border-2 border-pink-400" />
+                      <button
+                        type="button"
+                        className="absolute -bottom-3 -right-3 z-[12] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setResizeState({
+                            kind: "item",
+                            id: item.id,
+                            startX: e.clientX,
+                            startY: e.clientY,
+                            itemW: item.w,
+                            itemH: item.h,
+                            itemX: item.x,
+                            itemY: item.y
+                          });
+                        }}
+                      />
+                    </>
+                  ) : null}
+                </div>
+              );
+            })}
 
-      {items
-        .slice()
-        .sort((a, b) => a.z - b.z)
-        .map((item) => (
-          <div
-            key={item.id}
-            className={`absolute overflow-hidden rounded-2xl ${
-              selectedId === item.id ? "ring-2 ring-pink-500" : "ring-1 ring-white/10"
-            }`}
-            style={{
-              left: item.x,
-              top: item.y,
-              width: item.w,
-              height: item.h,
-              zIndex: item.z,
-              cursor: "move"
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onSelect(item.id);
-              setDragState({
-                kind: "item",
-                id: item.id,
-                startX: e.clientX,
-                startY: e.clientY,
-                itemX: item.x,
-                itemY: item.y
-              });
-            }}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              if (item.type === "image") {
-                onImageClick?.(item.id);
-              }
-            }}
-          >
-            {item.type === "text" ? (
-              <div
-                className="h-full w-full whitespace-pre-wrap rounded-2xl p-3 select-none"
-                style={{
-                  color: item.color,
-                  fontSize: item.fontSize,
-                  fontWeight: item.fontWeight,
-                  pointerEvents: "none"
-                }}
-              >
-                {item.content}
-              </div>
-            ) : (
-              <div
-                className="h-full w-full overflow-hidden rounded-2xl bg-white/5"
-                style={{ pointerEvents: "none" }}
-              >
-                {item.src ? (
-                  <img
-                    src={item.src}
-                    alt=""
-                    className="h-full w-full object-cover select-none"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-white/70">
-                    Double click to select image
-                  </div>
-                )}
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-pink-500 shadow-lg"
+          {book?.enabled ? (
+            <div
+              className="absolute z-[20]"
+              style={{
+                left: book.x,
+                top: book.y,
+                width: book.w,
+                height: book.h
+              }}
               onMouseDown={(e) => {
                 e.stopPropagation();
-                onSelect(item.id);
-                setResizeState({
-                  kind: "item",
-                  id: item.id,
+                onSelect(null);
+                setDragState({
+                  kind: "book",
                   startX: e.clientX,
                   startY: e.clientY,
-                  itemW: item.w,
-                  itemH: item.h,
-                  itemX: item.x,
-                  itemY: item.y
+                  itemX: book.x,
+                  itemY: book.y
                 });
               }}
-              style={{ transform: "translate(35%, 35%)", cursor: "nwse-resize" }}
-            />
-          </div>
-        ))}
+            >
+              <MemoryBook
+                pageCount={book.pageCount}
+                pages={book.pages}
+                editable
+                currentPage={book.currentPage}
+                onCurrentPageChange={onBookFlip}
+                onUploadPage={onBookPageDoubleClick}
+                width={book.w}
+                height={book.h}
+                coverImage={coverImage}
+                title={book.title}
+              />
+
+              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-amber-300/25" />
+              <button
+                type="button"
+                className="absolute -bottom-3 -right-3 z-[21] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setResizeState({
+                    kind: "book",
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    itemW: book.w,
+                    itemH: book.h,
+                    itemX: book.x,
+                    itemY: book.y
+                  });
+                }}
+              />
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }
