@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { editorTemplates, EditorItem, EditorTemplate } from "@/lib/templates";
 import { LayoutEditor } from "@/components/LayoutEditor";
 import { BookPageMedia } from "@/components/MemoryBook";
@@ -33,10 +33,7 @@ type StoryScene = {
   gameChallengeTarget?: number | null;
   puzzleImage?: string;
   puzzleTimeLimit?: number;
-  // add this new one
   backgroundPositionX?: number;
-
-  // add this new one
   backgroundPositionY?: number;
 };
 
@@ -93,13 +90,18 @@ function createScene(template: EditorTemplate, index: number): StoryScene {
     gameChallengeTarget: index === 2 ? 10 : null,
     puzzleImage: "",
     puzzleTimeLimit: index === 3 ? 60 : 60,
-
-    // add this new one
     backgroundPositionX: 50,
-
-    // add this new one
     backgroundPositionY: 50,
   };
+}
+
+function randomLayoutId() {
+  return Math.floor(Math.random() * 6);
+}
+
+function slotCountFromLayout(layoutId: number) {
+  const counts = [1, 2, 3, 4, 3, 4];
+  return counts[layoutId] ?? 1;
 }
 
 function makeDefaultBook(title: string, pageCount: 4 | 6 | 8): BookData {
@@ -107,10 +109,16 @@ function makeDefaultBook(title: string, pageCount: 4 | 6 | 8): BookData {
     enabled: true,
     pageCount,
     currentPage: -1,
-    pages: Array.from({ length: pageCount }, () => ({
-      type: "image" as const,
-      url: "",
-    })),
+    pages: Array.from({ length: pageCount }, () => {
+      const layoutId = randomLayoutId();
+      return {
+        layoutId,
+        slots: Array.from(
+          { length: slotCountFromLayout(layoutId) },
+          () => null
+        ),
+      };
+    }),
     x: 170,
     y: 180,
     w: 760,
@@ -138,7 +146,7 @@ export function AdvancedCreateForm() {
   const [animation, setAnimation] = useState<AnimationType>("none");
 
   const [showBookOptions, setShowBookOptions] = useState(false);
-  const [bookTitleInput, setBookTitleInput] = useState("Our Memory Book");
+  const [bookTitleInput, setBookTitleInput] = useState("Our Album");
 
   const [shareUrl, setShareUrl] = useState("");
   const [error, setError] = useState("");
@@ -146,11 +154,11 @@ export function AdvancedCreateForm() {
   const [copied, setCopied] = useState(false);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const replaceSceneBgInputRef = useRef<HTMLInputElement | null>(null);
+  const sceneBackgroundInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageIdRef = useRef<string | null>(null);
 
   const bookMediaInputRef = useRef<HTMLInputElement | null>(null);
-  const pendingBookPageRef = useRef<number | null>(null);
+  const pendingBookSlotRef = useRef<number | null>(null);
   const puzzleImageInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeScene = scenes[activeSceneIndex] ?? scenes[0];
@@ -243,20 +251,6 @@ export function AdvancedCreateForm() {
     setSelectedId(null);
   };
 
-  useEffect(() => {
-    if (template.id !== "romantic-hero") return;
-    setActiveSceneItems(makeHeroImageSameAsTitle(items));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template.id, activeSceneIndex]);
-
-  useEffect(() => {
-    if (activeScene.book?.title) {
-      setBookTitleInput(activeScene.book.title);
-    } else {
-      setBookTitleInput(`${activeScene.name} Memory Book`);
-    }
-  }, [activeScene.book?.title, activeScene.name]);
-
   const addTextBlock = () => {
     if (isGameScene || isPuzzleScene) return;
 
@@ -319,8 +313,8 @@ export function AdvancedCreateForm() {
 
   const deleteSelected = () => {
     if (isGameScene || isPuzzleScene) return;
-
     if (!selectedId) return;
+
     setActiveSceneItems(items.filter((item) => item.id !== selectedId));
     setSelectedId(null);
   };
@@ -328,15 +322,18 @@ export function AdvancedCreateForm() {
   const handleSceneBackgroundUpload = async (file: File) => {
     const result = await uploadMedia(file);
 
-    updateActiveScene({
-      backgroundImage: result.url,
-
-      // add this new one
-      backgroundPositionX: 50,
-
-      // add this new one
-      backgroundPositionY: 50,
-    });
+    updateScenes((current) =>
+      current.map((scene, index) =>
+        index === activeSceneIndex
+          ? {
+              ...scene,
+              backgroundImage: result.url,
+              backgroundPositionX: 50,
+              backgroundPositionY: 50,
+            }
+          : scene,
+      ),
+    );
 
     setError("");
   };
@@ -351,11 +348,6 @@ export function AdvancedCreateForm() {
     }
 
     updateItem(imageId, { src: result.url });
-
-    if (!activeScene.backgroundImage) {
-      updateActiveScene({ backgroundImage: result.url });
-    }
-
     setError("");
   };
 
@@ -364,7 +356,7 @@ export function AdvancedCreateForm() {
 
     updateActiveScene({
       book: makeDefaultBook(
-        bookTitleInput || `${activeScene.name} Memory Book`,
+        bookTitleInput || `${activeScene.name} Album`,
         pageCount,
       ),
     });
@@ -380,22 +372,36 @@ export function AdvancedCreateForm() {
 
   const handleBookFlip = (page: number) => {
     if (isGameScene || isPuzzleScene) return;
-
     if (!activeScene.book) return;
+
     updateActiveBook({ currentPage: page });
   };
 
-  const handleBookPageUpload = async (pageIndex: number, file: File) => {
+  const handleBookPageUpload = async (encodedSlotIndex: number, file: File) => {
     if (isGameScene || isPuzzleScene) return;
 
     const result = await uploadMedia(file);
     if (!activeScene.book) return;
 
+    const pageIndex = Math.floor(encodedSlotIndex / 10);
+    const slotIndex = encodedSlotIndex % 10;
+
+    if (!activeScene.book.pages[pageIndex]) return;
+
     const nextPages = [...activeScene.book.pages];
+    const targetPage = nextPages[pageIndex];
+
     nextPages[pageIndex] = {
-      type: result.resourceType === "video" ? "video" : "image",
-      url: result.url,
-      poster: result.poster,
+      ...targetPage,
+      slots: targetPage.slots.map((slot, index) =>
+        index === slotIndex
+          ? {
+              type: result.resourceType === "video" ? "video" : "image",
+              url: result.url,
+              poster: result.poster,
+            }
+          : slot
+      ),
     };
 
     updateActiveBook({ pages: nextPages });
@@ -411,7 +417,6 @@ export function AdvancedCreateForm() {
     }
 
     const numeric = Number(trimmed);
-
     if (!Number.isFinite(numeric)) return;
 
     updateActiveScene({
@@ -505,12 +510,14 @@ export function AdvancedCreateForm() {
                   }))),
             ...(sceneIndex === 2 || sceneIndex === 3
               ? []
-              : scene.book?.pages
-                  .filter((page) => page.type === "image" && page.url)
-                  .map((page, index) => ({
-                    imageUrl: page.url,
-                    altText: `${scene.name}-book-page-${index + 1}`,
-                  })) || []),
+              : scene.book?.pages.flatMap((page, pageIndex) =>
+                  page.slots
+                    .filter((slot): slot is NonNullable<typeof slot> => Boolean(slot?.url))
+                    .map((slot, slotIndex) => ({
+                      imageUrl: slot.url,
+                      altText: `${scene.name}-album-page-${pageIndex + 1}-slot-${slotIndex + 1}`,
+                    }))
+                ) || []),
           ]),
           layoutJson: {
             templateId: template.id,
@@ -553,6 +560,7 @@ export function AdvancedCreateForm() {
           onChange={(e) => {
             const file = e.target.files?.[0];
             const imageId = pendingImageIdRef.current;
+
             if (file && imageId) {
               void handleImageUploadToSpecific(imageId, file).catch((err) => {
                 setError(
@@ -560,18 +568,20 @@ export function AdvancedCreateForm() {
                 );
               });
             }
+
             e.currentTarget.value = "";
             pendingImageIdRef.current = null;
           }}
         />
 
         <input
-          ref={replaceSceneBgInputRef}
+          ref={sceneBackgroundInputRef}
           type="file"
           accept="image/*"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
+
             if (file) {
               void handleSceneBackgroundUpload(file).catch((err) => {
                 setError(
@@ -579,6 +589,7 @@ export function AdvancedCreateForm() {
                 );
               });
             }
+
             e.currentTarget.value = "";
           }}
         />
@@ -590,10 +601,10 @@ export function AdvancedCreateForm() {
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            const pageIndex = pendingBookPageRef.current;
+            const encodedSlotIndex = pendingBookSlotRef.current;
 
-            if (file && pageIndex !== null) {
-              void handleBookPageUpload(pageIndex, file).catch((err) => {
+            if (file && encodedSlotIndex !== null) {
+              void handleBookPageUpload(encodedSlotIndex, file).catch((err) => {
                 setError(
                   err instanceof Error ? err.message : "Media upload failed",
                 );
@@ -601,7 +612,7 @@ export function AdvancedCreateForm() {
             }
 
             e.currentTarget.value = "";
-            pendingBookPageRef.current = null;
+            pendingBookSlotRef.current = null;
           }}
         />
 
@@ -612,6 +623,7 @@ export function AdvancedCreateForm() {
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
+
             if (file) {
               void handlePuzzleImageUpload(file).catch((err) => {
                 setError(
@@ -621,6 +633,7 @@ export function AdvancedCreateForm() {
                 );
               });
             }
+
             e.currentTarget.value = "";
           }}
         />
@@ -698,8 +711,8 @@ export function AdvancedCreateForm() {
               book={activeScene.book}
               onBookFlip={handleBookFlip}
               onBookChange={updateActiveBook}
-              onBookPageDoubleClick={(pageIndex) => {
-                pendingBookPageRef.current = pageIndex;
+              onBookPageDoubleClick={(encodedSlotIndex) => {
+                pendingBookSlotRef.current = encodedSlotIndex;
                 bookMediaInputRef.current?.click();
               }}
               onChange={setActiveSceneItems}
@@ -714,7 +727,6 @@ export function AdvancedCreateForm() {
               isPuzzleScene={isPuzzleScene}
               puzzleImage={activeScene.puzzleImage}
               puzzleTimeLimit={activeScene.puzzleTimeLimit ?? 60}
-              // add this new one
               backgroundPositionX={activeScene.backgroundPositionX ?? 50}
               backgroundPositionY={activeScene.backgroundPositionY ?? 50}
               onBackgroundPositionChange={(patch) => updateActiveScene(patch)}
@@ -767,8 +779,7 @@ export function AdvancedCreateForm() {
               <>
                 <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
                   Background 3 is reserved for the full-screen bird game. Text
-                  boxes, image boxes, and memory books are disabled for this
-                  scene.
+                  boxes, image boxes, and albums are disabled for this scene.
                 </div>
 
                 <div className="space-y-3 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
@@ -800,10 +811,10 @@ export function AdvancedCreateForm() {
 
                 <button
                   type="button"
-                  onClick={() => replaceSceneBgInputRef.current?.click()}
+                  onClick={() => sceneBackgroundInputRef.current?.click()}
                   className="w-full rounded-2xl bg-gradient-to-r from-pink-500/20 to-violet-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-pink-500/30 hover:to-violet-500/30"
                 >
-                  Upload {activeScene.name.toLowerCase()} Image
+                  Upload {activeScene.name.toLowerCase()} image
                 </button>
 
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -861,10 +872,10 @@ export function AdvancedCreateForm() {
 
                   <button
                     type="button"
-                    onClick={() => replaceSceneBgInputRef.current?.click()}
+                    onClick={() => sceneBackgroundInputRef.current?.click()}
                     className="w-full rounded-2xl bg-gradient-to-r from-pink-500/20 to-violet-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-pink-500/30 hover:to-violet-500/30"
                   >
-                    Upload {activeScene.name.toLowerCase()} Image
+                    Upload {activeScene.name.toLowerCase()} image
                   </button>
                 </div>
 
@@ -889,7 +900,7 @@ export function AdvancedCreateForm() {
                 <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
                   <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-3">
                     <label className="mb-2 block text-sm font-semibold text-white">
-                      Book title
+                      Album title
                     </label>
                     <input
                       value={bookTitleInput}
@@ -901,7 +912,7 @@ export function AdvancedCreateForm() {
                         }
                       }}
                       className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none"
-                      placeholder="Our Memory Book"
+                      placeholder="Our Album"
                     />
                   </div>
 
@@ -911,8 +922,8 @@ export function AdvancedCreateForm() {
                     className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
                   >
                     {activeScene.book?.enabled
-                      ? "Edit memory book"
-                      : `+ Add book to ${activeScene.name}`}
+                      ? "Edit album"
+                      : `+ Add album to ${activeScene.name}`}
                   </button>
 
                   {showBookOptions ? (
@@ -945,7 +956,7 @@ export function AdvancedCreateForm() {
                           onClick={removeBook}
                           className="w-full rounded-xl bg-red-500/20 px-4 py-3 text-left text-sm text-red-200"
                         >
-                          Remove book from this background
+                          Remove album from this background
                         </button>
                       ) : null}
                     </div>
