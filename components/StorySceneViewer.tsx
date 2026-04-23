@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MemoryBook, BookPageMedia } from "@/components/MemoryBook";
 import { FlappyBirdScene } from "@/components/FlappyBirdScene";
+import { PuzzleGameScene } from "@/components/PuzzleGameScene";
 
 type AnimationType =
   | "none"
@@ -36,6 +37,8 @@ type StorySceneItem = {
   color?: string;
   fontWeight?: number;
   z?: number;
+  imagePositionX?: number;
+  imagePositionY?: number;
 };
 
 type StoryScene = {
@@ -45,9 +48,15 @@ type StoryScene = {
   backgroundImage?: string;
   items: StorySceneItem[];
   book?: BookData;
+  gameChallengeTarget?: number | null;
+  puzzleImage?: string;
+  puzzleTimeLimit?: number;
 
   // add this new one
-  gameChallengeTarget?: number | null;
+  backgroundPositionX?: number;
+
+  // add this new one
+  backgroundPositionY?: number;
 };
 
 function FallingLayer({ type }: { type: AnimationType }) {
@@ -228,6 +237,11 @@ export function StorySceneViewer({
     normalizedName === "background 3" ||
     normalizedName === "scene 3";
 
+  const isPuzzleScene =
+    activeIndex === 3 ||
+    normalizedName === "background 4" ||
+    normalizedName === "scene 4";
+
   const currentBookPage =
     scene.book?.enabled && typeof sceneBookPages[scene.id] === "number"
       ? sceneBookPages[scene.id]
@@ -270,12 +284,13 @@ export function StorySceneViewer({
             className="relative h-full min-h-screen w-full"
             style={{ background: scene.background }}
           >
-            {isGameScene ? (
-              <FlappyBirdScene
-
-                // add this new one
-                challengeTarget={scene.gameChallengeTarget ?? null}
+            {isPuzzleScene ? (
+              <PuzzleGameScene
+                imageUrl={scene.puzzleImage}
+                timeLimitSeconds={scene.puzzleTimeLimit ?? 60}
               />
+            ) : isGameScene ? (
+              <FlappyBirdScene challengeTarget={scene.gameChallengeTarget ?? null} />
             ) : (
               <>
                 {scene.backgroundImage ? (
@@ -284,6 +299,9 @@ export function StorySceneViewer({
                       src={scene.backgroundImage}
                       alt={`${scene.name} background`}
                       className="absolute inset-0 h-full w-full object-cover"
+                      style={{
+                        objectPosition: `${scene.backgroundPositionX ?? 50}% ${scene.backgroundPositionY ?? 50}%`
+                      }}
                       initial={{ scale: 1.08, opacity: 0.7 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.96, opacity: 0.65 }}
@@ -373,6 +391,9 @@ export function StorySceneViewer({
                         src={item.src}
                         alt="Story memory"
                         className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+                        style={{
+                          objectPosition: `${item.imagePositionX ?? 50}% ${item.imagePositionY ?? 50}%`
+                        }}
                       />
                     ) : null}
                   </motion.div>

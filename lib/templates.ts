@@ -11,6 +11,14 @@ export type EditorItem = {
   fontSize?: number;
   color?: string;
   fontWeight?: number;
+
+
+  // add this new one
+  imagePositionX?: number;
+
+  // add this new one
+  imagePositionY?: number;
+  
 };
 
 export type EditorTemplate = {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorItem } from "@/lib/templates";
 import { MemoryBook, BookPageMedia } from "@/components/MemoryBook";
 import { FlappyBirdScene } from "@/components/FlappyBirdScene";
+import { PuzzleGameScene } from "@/components/PuzzleGameScene";
 
 type AnimationType =
   | "none"
@@ -37,9 +38,15 @@ type Props = {
   onSelect: (id: string | null) => void;
   onImageClick?: (id: string) => void;
   isGameScene?: boolean;
-
-  // add this new one
   challengeTarget?: number | null;
+  isPuzzleScene?: boolean;
+  puzzleImage?: string;
+  puzzleTimeLimit?: number;
+  backgroundPositionX?: number;
+  backgroundPositionY?: number;
+  onBackgroundPositionChange?: (
+    patch: { backgroundPositionX: number; backgroundPositionY: number }
+  ) => void;
 };
 
 type DragState =
@@ -81,6 +88,33 @@ type ResizeState =
       itemY: number;
     }
   | null;
+
+type PanState =
+  | {
+      id: string;
+      startX: number;
+      startY: number;
+      startPositionX: number;
+      startPositionY: number;
+      itemW: number;
+      itemH: number;
+    }
+  | null;
+
+type BackgroundPanState =
+  | {
+      startX: number;
+      startY: number;
+      startPositionX: number;
+      startPositionY: number;
+      containerW: number;
+      containerH: number;
+    }
+  | null;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
 
 function FallingLayer({ type }: { type: AnimationType }) {
   const particles = useMemo(
@@ -218,20 +252,29 @@ export function LayoutEditor({
   onSelect,
   onImageClick,
   isGameScene = false,
-
-  // add this new one
-  challengeTarget = null
+  challengeTarget = null,
+  isPuzzleScene = false,
+  puzzleImage,
+  puzzleTimeLimit = 60,
+  backgroundPositionX = 50,
+  backgroundPositionY = 50,
+  onBackgroundPositionChange
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<DragState>(null);
   const [resizeState, setResizeState] = useState<ResizeState>(null);
+  const [panState, setPanState] = useState<PanState>(null);
+  const [backgroundPanState, setBackgroundPanState] = useState<BackgroundPanState>(null);
+
+  // add this new one
+  const [isBackgroundMoveMode, setIsBackgroundMoveMode] = useState(false);
 
   const updateItem = (id: string, patch: Partial<EditorItem>) => {
     onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   };
 
   useEffect(() => {
-    if (isGameScene) return;
+    if (isGameScene || isPuzzleScene) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       const container = containerRef.current;
@@ -295,11 +338,59 @@ export function LayoutEditor({
 
         onBookChange({ w: nextW, h: nextH });
       }
+
+      if (panState) {
+        const dx = e.clientX - panState.startX;
+        const dy = e.clientY - panState.startY;
+
+        const nextPositionX = clamp(
+          panState.startPositionX - (dx / Math.max(panState.itemW, 1)) * 100,
+          0,
+          100
+        );
+
+        const nextPositionY = clamp(
+          panState.startPositionY - (dy / Math.max(panState.itemH, 1)) * 100,
+          0,
+          100
+        );
+
+        updateItem(panState.id, {
+          imagePositionX: nextPositionX,
+          imagePositionY: nextPositionY
+        });
+      }
+
+      if (backgroundPanState && onBackgroundPositionChange) {
+        const dx = e.clientX - backgroundPanState.startX;
+        const dy = e.clientY - backgroundPanState.startY;
+
+        const nextPositionX = clamp(
+          backgroundPanState.startPositionX -
+            (dx / Math.max(backgroundPanState.containerW, 1)) * 100,
+          0,
+          100
+        );
+
+        const nextPositionY = clamp(
+          backgroundPanState.startPositionY -
+            (dy / Math.max(backgroundPanState.containerH, 1)) * 100,
+          0,
+          100
+        );
+
+        onBackgroundPositionChange({
+          backgroundPositionX: nextPositionX,
+          backgroundPositionY: nextPositionY
+        });
+      }
     };
 
     const handleMouseUp = () => {
       setDragState(null);
       setResizeState(null);
+      setPanState(null);
+      setBackgroundPanState(null);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -309,21 +400,49 @@ export function LayoutEditor({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragState, resizeState, items, book, onBookChange, isGameScene]);
+  }, [
+    dragState,
+    resizeState,
+    panState,
+    backgroundPanState,
+    items,
+    book,
+    onBookChange,
+    onBackgroundPositionChange,
+    isGameScene,
+    isPuzzleScene
+  ]);
 
   return (
     <div
       ref={containerRef}
-      className="relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"
+      className={`relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950 ${
+        isBackgroundMoveMode ? "cursor-grab" : ""
+      }`}
       style={{ background }}
-      onMouseDown={() => onSelect(null)}
-    >
-      {isGameScene ? (
-        <FlappyBirdScene
+      onMouseDown={(e) => {
+        if (isBackgroundMoveMode && coverImage && onBackgroundPositionChange && containerRef.current) {
+          e.stopPropagation();
+          onSelect(null);
 
-          // add this new one
-          challengeTarget={challengeTarget}
-        />
+          setBackgroundPanState({
+            startX: e.clientX,
+            startY: e.clientY,
+            startPositionX: backgroundPositionX,
+            startPositionY: backgroundPositionY,
+            containerW: containerRef.current.clientWidth,
+            containerH: containerRef.current.clientHeight
+          });
+          return;
+        }
+
+        onSelect(null);
+      }}
+    >
+      {isPuzzleScene ? (
+        <PuzzleGameScene imageUrl={puzzleImage} timeLimitSeconds={puzzleTimeLimit} />
+      ) : isGameScene ? (
+        <FlappyBirdScene challengeTarget={challengeTarget} />
       ) : (
         <>
           {coverImage ? (
@@ -333,8 +452,33 @@ export function LayoutEditor({
                 alt="Editor background"
                 className="absolute inset-0 z-0 h-full w-full object-cover"
                 draggable={false}
+                style={{
+                  objectPosition: `${backgroundPositionX}% ${backgroundPositionY}%`
+                }}
               />
               <div className="absolute inset-0 z-0 bg-slate-950/40" />
+
+              {/* add this new one */}
+              <div className="absolute left-4 top-4 z-[30] flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsBackgroundMoveMode((prev) => !prev);
+                  }}
+                  className={`rounded-full px-4 py-2 text-[12px] font-bold text-white backdrop-blur-sm ${
+                    isBackgroundMoveMode ? "bg-pink-600/90" : "bg-black/55"
+                  }`}
+                >
+                  {isBackgroundMoveMode ? "Background move: ON" : "Move background"}
+                </button>
+
+                {isBackgroundMoveMode ? (
+                  <div className="rounded-full bg-black/55 px-3 py-2 text-[11px] font-semibold text-white backdrop-blur-sm">
+                    Drag anywhere to adjust focus
+                  </div>
+                ) : null}
+              </div>
             </>
           ) : null}
 
@@ -347,6 +491,8 @@ export function LayoutEditor({
             .sort((a, b) => a.z - b.z)
             .map((item) => {
               const isSelected = selectedId === item.id;
+              const imagePositionX = item.imagePositionX ?? 50;
+              const imagePositionY = item.imagePositionY ?? 50;
 
               return (
                 <div
@@ -356,11 +502,26 @@ export function LayoutEditor({
                     left: item.x,
                     top: item.y,
                     width: item.w,
-                    height: item.h
+                    height: item.h,
+                    pointerEvents: isBackgroundMoveMode ? "none" : "auto"
                   }}
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     onSelect(item.id);
+
+                    if (item.type === "image" && item.src) {
+                      setPanState({
+                        id: item.id,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        startPositionX: imagePositionX,
+                        startPositionY: imagePositionY,
+                        itemW: item.w,
+                        itemH: item.h
+                      });
+                      return;
+                    }
+
                     setDragState({
                       kind: "item",
                       id: item.id,
@@ -390,12 +551,25 @@ export function LayoutEditor({
                       {item.content}
                     </div>
                   ) : item.src ? (
-                    <img
-                      src={item.src}
-                      alt="Editor block"
-                      className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
-                      draggable={false}
-                    />
+                    <>
+                      <img
+                        src={item.src}
+                        alt="Editor block"
+                        className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+                        draggable={false}
+                        style={{
+                          objectPosition: `${imagePositionX}% ${imagePositionY}%`
+                        }}
+                      />
+
+                      {isSelected ? (
+                        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+                          <div className="rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                            Drag image to adjust focus
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
                   ) : (
                     <div className="flex h-full w-full items-center justify-center rounded-[1.75rem] border border-dashed border-white/30 bg-black/20 text-center text-sm text-white/70">
                       Double click to add image
@@ -405,6 +579,28 @@ export function LayoutEditor({
                   {isSelected ? (
                     <>
                       <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] border-2 border-pink-400" />
+
+                      {item.type === "image" ? (
+                        <button
+                          type="button"
+                          className="absolute left-3 top-3 z-[13] rounded-full bg-black/60 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.15em] text-white backdrop-blur-sm"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setPanState(null);
+                            setDragState({
+                              kind: "item",
+                              id: item.id,
+                              startX: e.clientX,
+                              startY: e.clientY,
+                              itemX: item.x,
+                              itemY: item.y
+                            });
+                          }}
+                        >
+                          Move box
+                        </button>
+                      ) : null}
+
                       <button
                         type="button"
                         className="absolute -bottom-3 -right-3 z-[12] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
@@ -435,7 +631,8 @@ export function LayoutEditor({
                 left: book.x,
                 top: book.y,
                 width: book.w,
-                height: book.h
+                height: book.h,
+                pointerEvents: isBackgroundMoveMode ? "none" : "auto"
               }}
               onMouseDown={(e) => {
                 e.stopPropagation();
