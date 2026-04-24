@@ -21,6 +21,9 @@ type BookData = {
   w: number;
   h: number;
   title?: string;
+  coverImage?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
 };
 
 type StoryScene = {
@@ -96,11 +99,11 @@ function createScene(template: EditorTemplate, index: number): StoryScene {
 }
 
 function randomLayoutId() {
-  return Math.floor(Math.random() * 6);
+  return Math.floor(Math.random() * 4);
 }
 
 function slotCountFromLayout(layoutId: number) {
-  const counts = [1, 2, 3, 4, 3, 4];
+  const counts = [1, 2, 3, 4];
   return counts[layoutId] ?? 1;
 }
 
@@ -124,6 +127,9 @@ function makeDefaultBook(title: string, pageCount: 4 | 6 | 8): BookData {
     w: 760,
     h: 460,
     title,
+    coverImage: "",
+    coverPositionX: 50,
+    coverPositionY: 50,
   };
 }
 
@@ -158,6 +164,7 @@ export function AdvancedCreateForm() {
   const pendingImageIdRef = useRef<string | null>(null);
 
   const bookMediaInputRef = useRef<HTMLInputElement | null>(null);
+  const bookCoverInputRef = useRef<HTMLInputElement | null>(null);
   const pendingBookSlotRef = useRef<number | null>(null);
   const puzzleImageInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -408,6 +415,25 @@ export function AdvancedCreateForm() {
     setError("");
   };
 
+  const handleBookCoverUpload = async (file: File) => {
+    if (isGameScene || isPuzzleScene) return;
+
+    const result = await uploadMedia(file);
+    if (result.resourceType !== "image") {
+      setError("Only images can be used as the album cover.");
+      return;
+    }
+
+    if (!activeScene.book) return;
+
+    updateActiveBook({
+      coverImage: result.url,
+      coverPositionX: 50,
+      coverPositionY: 50,
+    });
+    setError("");
+  };
+
   const handleChallengeTargetChange = (value: string) => {
     const trimmed = value.trim();
 
@@ -613,6 +639,26 @@ export function AdvancedCreateForm() {
 
             e.currentTarget.value = "";
             pendingBookSlotRef.current = null;
+          }}
+        />
+
+        <input
+          ref={bookCoverInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+
+            if (file) {
+              void handleBookCoverUpload(file).catch((err) => {
+                setError(
+                  err instanceof Error ? err.message : "Media upload failed",
+                );
+              });
+            }
+
+            e.currentTarget.value = "";
           }}
         />
 
@@ -961,6 +1007,51 @@ export function AdvancedCreateForm() {
                       ) : null}
                     </div>
                   ) : null}
+
+                  <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-900/40 p-4">
+                    <button
+                      type="button"
+                      onClick={() => bookCoverInputRef.current?.click()}
+                      className="w-full rounded-xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+                    >
+                      Upload album cover image
+                    </button>
+
+                    <label className="grid gap-2 text-sm text-slate-300">
+                      Cover image horizontal position
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={activeScene.book?.coverPositionX ?? 50}
+                        onChange={(e) =>
+                          updateActiveBook({
+                            coverPositionX: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label className="grid gap-2 text-sm text-slate-300">
+                      Cover image vertical position
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={activeScene.book?.coverPositionY ?? 50}
+                        onChange={(e) =>
+                          updateActiveBook({
+                            coverPositionY: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </label>
+
+                    <p className="text-xs leading-6 text-slate-400">
+                      Album pages support 1 to 4 photos. Double click any photo
+                      box inside the album to upload.
+                    </p>
+                  </div>
                 </div>
 
                 {selected?.type === "text" ? (

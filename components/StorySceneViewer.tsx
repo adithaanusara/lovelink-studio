@@ -22,6 +22,9 @@ type BookData = {
   w: number;
   h: number;
   title?: string;
+  coverImage?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
 };
 
 type StorySceneItem = {
@@ -432,7 +435,7 @@ function FallingDecorLayer({
         rotateY: `${200 + (i % 7) * 20}deg`,
         scale: 0.82 + (i % 4) * 0.12,
       })),
-    [type]
+    [type],
   );
 
   return (
@@ -479,7 +482,7 @@ function SparkleHeartsLayer() {
         scale: 0.8 + (i % 4) * 0.14,
         rotate: `${(i * 19) % 360}deg`,
       })),
-    []
+    [],
   );
 
   const sparkles = useMemo(
@@ -492,10 +495,9 @@ function SparkleHeartsLayer() {
         delay: `${(i % 12) * 0.16}s`,
         scale: 0.8 + (i % 3) * 0.18,
         rotate: `${(i * 31) % 360}deg`,
-        color:
-          i % 3 === 0 ? "#fff7fb" : i % 3 === 1 ? "#ffd8ea" : "#ffffff",
+        color: i % 3 === 0 ? "#fff7fb" : i % 3 === 1 ? "#ffd8ea" : "#ffffff",
       })),
-    []
+    [],
   );
 
   return (
@@ -550,7 +552,9 @@ export function StorySceneViewer({
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(1);
-  const [sceneBookPages, setSceneBookPages] = useState<Record<string, number>>({});
+  const [sceneBookPages, setSceneBookPages] = useState<Record<string, number>>(
+    {},
+  );
 
   const scene = scenes[activeIndex] ?? scenes[0];
 
@@ -585,7 +589,11 @@ export function StorySceneViewer({
   if (!scene) return null;
 
   const goToScene = (nextIndex: number) => {
-    if (nextIndex === activeIndex || nextIndex < 0 || nextIndex >= scenes.length) {
+    if (
+      nextIndex === activeIndex ||
+      nextIndex < 0 ||
+      nextIndex >= scenes.length
+    ) {
       return;
     }
 
@@ -608,7 +616,7 @@ export function StorySceneViewer({
   const currentBookPage =
     scene.book?.enabled && typeof sceneBookPages[scene.id] === "number"
       ? sceneBookPages[scene.id]
-      : scene.book?.currentPage ?? -1;
+      : (scene.book?.currentPage ?? -1);
 
   return (
     <section
@@ -655,7 +663,9 @@ export function StorySceneViewer({
                 timeLimitSeconds={scene.puzzleTimeLimit ?? 60}
               />
             ) : isGameScene ? (
-              <FlappyBirdScene challengeTarget={scene.gameChallengeTarget ?? null} />
+              <FlappyBirdScene
+                challengeTarget={scene.gameChallengeTarget ?? null}
+              />
             ) : (
               <>
                 {scene.backgroundImage ? (
@@ -702,12 +712,15 @@ export function StorySceneViewer({
                     <MemoryBook
                       pageCount={scene.book.pageCount}
                       pages={scene.book.pages}
-                      currentPage={currentBookPage}
-                      onCurrentPageChange={(page) => handleBookPageChange(scene.id, page)}
+                      currentPage={scene.book.currentPage}
                       width={scene.book.w}
                       height={scene.book.h}
-                      coverImage={scene.backgroundImage}
-                      title={scene.book.title || `${scene.name} Album`}
+                      coverImage={
+                        scene.book.coverImage || scene.backgroundImage
+                      }
+                      coverPositionX={scene.book.coverPositionX ?? 50}
+                      coverPositionY={scene.book.coverPositionY ?? 50}
+                      title={scene.book.title || `${scene.name} Memory Book`}
                     />
                   </motion.div>
                 ) : null}

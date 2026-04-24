@@ -22,6 +22,9 @@ type BookData = {
   w: number;
   h: number;
   title?: string;
+  coverImage?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
 };
 
 type Props = {
@@ -31,7 +34,7 @@ type Props = {
   animation?: AnimationType;
   book?: BookData;
   onBookFlip?: (page: number) => void;
-  onBookPageDoubleClick?: (pageIndex: number) => void;
+  onBookPageDoubleClick?: (encodedSlotIndex: number) => void;
   onBookChange?: (patch: Partial<BookData>) => void;
   onChange: (items: EditorItem[]) => void;
   selectedId: string | null;
@@ -788,286 +791,251 @@ export function LayoutEditor({
     isPuzzleScene,
   ]);
 
+  if (isGameScene) {
+    return (
+      <div
+        ref={containerRef}
+        className="relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"
+      >
+        <FlappyBirdScene />
+      </div>
+    );
+  }
+
+  if (isPuzzleScene) {
+    return (
+      <div
+        ref={containerRef}
+        className="relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"
+      >
+        <PuzzleGameScene
+          imageUrl={puzzleImage}
+          timeLimitSeconds={puzzleTimeLimit}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
-      className={`relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950 ${
-        isBackgroundMoveMode ? "cursor-grab" : ""
-      }`}
+      className="relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"
       style={{ background }}
-      onMouseDown={(e) => {
-        if (
-          isBackgroundMoveMode &&
-          coverImage &&
-          onBackgroundPositionChange &&
-          containerRef.current
-        ) {
-          e.stopPropagation();
-          onSelect(null);
-
-          setBackgroundPanState({
-            startX: e.clientX,
-            startY: e.clientY,
-            startPositionX: backgroundPositionX,
-            startPositionY: backgroundPositionY,
-            containerW: containerRef.current.clientWidth,
-            containerH: containerRef.current.clientHeight,
-          });
-          return;
-        }
-
-        onSelect(null);
-      }}
+      onMouseDown={() => onSelect(null)}
     >
-      {isPuzzleScene ? (
-        <PuzzleGameScene imageUrl={puzzleImage} timeLimitSeconds={puzzleTimeLimit} />
-      ) : isGameScene ? (
-        <FlappyBirdScene challengeTarget={challengeTarget} />
-      ) : (
+      <Romantic3DStyles />
+
+      {coverImage ? (
         <>
-          <Romantic3DStyles />
+          <img
+            src={coverImage}
+            alt="Editor background"
+            className="absolute inset-0 z-0 h-full w-full object-cover"
+            style={{
+              objectPosition: `${backgroundPositionX}% ${backgroundPositionY}%`,
+              cursor: isBackgroundMoveMode ? "grabbing" : "default",
+            }}
+            draggable={false}
+            onMouseDown={(e) => {
+              if (!isBackgroundMoveMode || !onBackgroundPositionChange || !containerRef.current) {
+                return;
+              }
 
-          {coverImage ? (
-            <>
-              <img
-                src={coverImage}
-                alt="Editor background"
-                className="absolute inset-0 z-0 h-full w-full object-cover"
-                draggable={false}
-                style={{
-                  objectPosition: `${backgroundPositionX}% ${backgroundPositionY}%`,
-                }}
-              />
-              <div className="absolute inset-0 z-0 bg-slate-950/40" />
+              e.stopPropagation();
+              setBackgroundPanState({
+                startX: e.clientX,
+                startY: e.clientY,
+                startPositionX: backgroundPositionX,
+                startPositionY: backgroundPositionY,
+                containerW: containerRef.current.clientWidth,
+                containerH: containerRef.current.clientHeight,
+              });
+            }}
+          />
+          <div className="absolute inset-0 z-0 bg-slate-950/40" />
+        </>
+      ) : null}
 
-              <div className="absolute left-4 top-4 z-[30] flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsBackgroundMoveMode((prev) => !prev);
-                  }}
-                  className={`rounded-full px-4 py-2 text-[12px] font-bold text-white backdrop-blur-sm ${
-                    isBackgroundMoveMode ? "bg-pink-600/90" : "bg-black/55"
-                  }`}
-                >
-                  {isBackgroundMoveMode ? "Background move: ON" : "Move background"}
-                </button>
+      {animation === "falling-hearts" ? <FallingDecorLayer type="falling-hearts" /> : null}
+      {animation === "falling-petals" ? <FallingDecorLayer type="falling-petals" /> : null}
+      {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
 
-                {isBackgroundMoveMode ? (
-                  <div className="rounded-full bg-black/55 px-3 py-2 text-[11px] font-semibold text-white backdrop-blur-sm">
-                    Drag anywhere to adjust focus
-                  </div>
-                ) : null}
-              </div>
-            </>
-          ) : null}
+      {coverImage ? (
+        <div className="absolute left-6 top-6 z-[30] flex items-center gap-3">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsBackgroundMoveMode((prev) => !prev);
+            }}
+            className={`rounded-full px-4 py-2 text-sm font-semibold shadow-lg transition ${
+              isBackgroundMoveMode
+                ? "bg-pink-500 text-white"
+                : "bg-black/55 text-white backdrop-blur-md"
+            }`}
+          >
+            {isBackgroundMoveMode ? "Stop moving background" : "Drag background to adjust focus"}
+          </button>
+        </div>
+      ) : null}
 
-          {animation === "falling-hearts" ? (
-            <FallingDecorLayer type="falling-hearts" />
-          ) : null}
+      {items
+        .slice()
+        .sort((a, b) => a.z - b.z)
+        .map((item) => {
+          const isSelected = selectedId === item.id;
 
-          {animation === "falling-petals" ? (
-            <FallingDecorLayer type="falling-petals" />
-          ) : null}
-
-          {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
-
-          {items
-            .slice()
-            .sort((a, b) => (a.z ?? 0) - (b.z ?? 0))
-            .map((item) => {
-              const isSelected = selectedId === item.id;
-              const imagePositionX = item.imagePositionX ?? 50;
-              const imagePositionY = item.imagePositionY ?? 50;
-
-              return (
-                <div
-                  key={item.id}
-                  className={`absolute z-[10] ${item.type === "image" ? "overflow-hidden" : ""}`}
-                  style={{
-                    left: item.x,
-                    top: item.y,
-                    width: item.w,
-                    height: item.h,
-                    pointerEvents: isBackgroundMoveMode ? "none" : "auto",
-                  }}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    onSelect(item.id);
-
-                    if (item.type === "image" && item.src) {
-                      setPanState({
-                        id: item.id,
-                        startX: e.clientX,
-                        startY: e.clientY,
-                        startPositionX: imagePositionX,
-                        startPositionY: imagePositionY,
-                        itemW: item.w,
-                        itemH: item.h,
-                      });
-                      return;
-                    }
-
-                    setDragState({
-                      kind: "item",
-                      id: item.id,
-                      startX: e.clientX,
-                      startY: e.clientY,
-                      itemX: item.x,
-                      itemY: item.y,
-                    });
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    if (item.type === "image") {
-                      onImageClick?.(item.id);
-                    }
-                  }}
-                >
-                  {item.type === "text" ? (
-                    <div
-                      className="h-full w-full whitespace-pre-wrap rounded-2xl px-2 py-1"
-                      style={{
-                        fontSize: item.fontSize ?? 24,
-                        color: item.color ?? "#ffffff",
-                        fontWeight: item.fontWeight ?? 700,
-                        textShadow: "0 6px 30px rgba(0,0,0,0.35)",
-                      }}
-                    >
-                      {item.content}
-                    </div>
-                  ) : item.src ? (
-                    <>
-                      <img
-                        src={item.src}
-                        alt="Editor block"
-                        className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
-                        draggable={false}
-                        style={{
-                          objectPosition: `${imagePositionX}% ${imagePositionY}%`,
-                        }}
-                      />
-
-                      {isSelected ? (
-                        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-                          <div className="rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                            Drag image to adjust focus
-                          </div>
-                        </div>
-                      ) : null}
-                    </>
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center rounded-[1.75rem] border border-dashed border-white/30 bg-black/20 text-center text-sm text-white/70">
-                      Double click to add image
-                    </div>
-                  )}
-
-                  {isSelected ? (
-                    <>
-                      <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] border-2 border-pink-400" />
-
-                      {item.type === "image" ? (
-                        <button
-                          type="button"
-                          className="absolute left-3 top-3 z-[13] rounded-full bg-black/60 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.15em] text-white backdrop-blur-sm"
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            setPanState(null);
-                            setDragState({
-                              kind: "item",
-                              id: item.id,
-                              startX: e.clientX,
-                              startY: e.clientY,
-                              itemX: item.x,
-                              itemY: item.y,
-                            });
-                          }}
-                        >
-                          Move box
-                        </button>
-                      ) : null}
-
-                      <button
-                        type="button"
-                        className="absolute -bottom-3 -right-3 z-[12] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          setResizeState({
-                            kind: "item",
-                            id: item.id,
-                            startX: e.clientX,
-                            startY: e.clientY,
-                            itemW: item.w,
-                            itemH: item.h,
-                            itemX: item.x,
-                            itemY: item.y,
-                          });
-                        }}
-                      />
-                    </>
-                  ) : null}
-                </div>
-              );
-            })}
-
-          {book?.enabled ? (
+          return (
             <div
-              className="absolute z-[20]"
+              key={item.id}
+              className={`absolute z-[10] ${item.type === "image" ? "overflow-hidden" : ""}`}
               style={{
-                left: book.x,
-                top: book.y,
-                width: book.w,
-                height: book.h,
-                pointerEvents: isBackgroundMoveMode ? "none" : "auto",
+                left: item.x,
+                top: item.y,
+                width: item.w,
+                height: item.h,
               }}
               onMouseDown={(e) => {
                 e.stopPropagation();
-                onSelect(null);
+                onSelect(item.id);
                 setDragState({
-                  kind: "book",
+                  kind: "item",
+                  id: item.id,
                   startX: e.clientX,
                   startY: e.clientY,
-                  itemX: book.x,
-                  itemY: book.y,
+                  itemX: item.x,
+                  itemY: item.y,
                 });
               }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                if (item.type === "image") {
+                  onImageClick?.(item.id);
+                }
+              }}
             >
-              <MemoryBook
-                pageCount={book.pageCount}
-                pages={book.pages}
-                editable
-                currentPage={book.currentPage}
-                onCurrentPageChange={onBookFlip}
-                onUploadPage={onBookPageDoubleClick}
-                width={book.w}
-                height={book.h}
-                coverImage={coverImage}
-                title={book.title}
-              />
+              {item.type === "text" ? (
+                <div
+                  className="h-full w-full whitespace-pre-wrap rounded-2xl px-2 py-1"
+                  style={{
+                    fontSize: item.fontSize ?? 24,
+                    color: item.color ?? "#ffffff",
+                    fontWeight: item.fontWeight ?? 700,
+                    textShadow: "0 6px 30px rgba(0,0,0,0.35)",
+                  }}
+                >
+                  {item.content}
+                </div>
+              ) : item.src ? (
+                <img
+                  src={item.src}
+                  alt="Editor block"
+                  className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+                  style={{
+                    objectPosition: `${item.imagePositionX ?? 50}% ${item.imagePositionY ?? 50}%`,
+                  }}
+                  draggable={false}
+                  onMouseDown={(e) => {
+                    if (!isSelected || !item.src) return;
 
-              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-amber-300/25" />
+                    e.stopPropagation();
+                    setPanState({
+                      id: item.id,
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      startPositionX: item.imagePositionX ?? 50,
+                      startPositionY: item.imagePositionY ?? 50,
+                      itemW: item.w,
+                      itemH: item.h,
+                    });
+                  }}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center rounded-[1.75rem] border border-dashed border-white/30 bg-black/20 text-center text-sm text-white/70">
+                  Double click to add image
+                </div>
+              )}
 
-              <button
-                type="button"
-                className="absolute -bottom-3 -right-3 z-[21] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  setResizeState({
-                    kind: "book",
-                    startX: e.clientX,
-                    startY: e.clientY,
-                    itemW: book.w,
-                    itemH: book.h,
-                    itemX: book.x,
-                    itemY: book.y,
-                  });
-                }}
-              />
+              {isSelected ? (
+                <>
+                  <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] border-2 border-pink-400" />
+                  <button
+                    type="button"
+                    className="absolute -bottom-3 -right-3 z-[12] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      setResizeState({
+                        kind: "item",
+                        id: item.id,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        itemW: item.w,
+                        itemH: item.h,
+                        itemX: item.x,
+                        itemY: item.y,
+                      });
+                    }}
+                  />
+                </>
+              ) : null}
             </div>
-          ) : null}
-        </>
-      )}
+          );
+        })}
+
+      {book?.enabled ? (
+        <div
+          className="absolute z-[20]"
+          style={{
+            left: book.x,
+            top: book.y,
+            width: book.w,
+            height: book.h,
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onSelect(null);
+            setDragState({
+              kind: "book",
+              startX: e.clientX,
+              startY: e.clientY,
+              itemX: book.x,
+              itemY: book.y,
+            });
+          }}
+        >
+          <MemoryBook
+            pageCount={book.pageCount}
+            pages={book.pages}
+            editable
+            currentPage={book.currentPage}
+            onCurrentPageChange={onBookFlip}
+            onUploadPage={onBookPageDoubleClick}
+            width={book.w}
+            height={book.h}
+            coverImage={book.coverImage || coverImage}
+            coverPositionX={book.coverPositionX ?? 50}
+            coverPositionY={book.coverPositionY ?? 50}
+            title={book.title}
+          />
+
+          <button
+            type="button"
+            className="absolute -bottom-3 -right-3 z-[21] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setResizeState({
+                kind: "book",
+                startX: e.clientX,
+                startY: e.clientY,
+                itemW: book.w,
+                itemH: book.h,
+                itemX: book.x,
+                itemY: book.y,
+              });
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

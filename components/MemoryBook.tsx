@@ -9,7 +9,7 @@ export type BookSlotMedia = {
 };
 
 export type BookPageMedia = {
-  layoutId: number;
+  layoutId?: number;
   slots: Array<BookSlotMedia | null>;
 };
 
@@ -23,6 +23,8 @@ type MemoryBookProps = {
   width?: number;
   height?: number;
   coverImage?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
   title?: string;
 };
 
@@ -36,35 +38,35 @@ type AlbumTile = {
   rotate: number;
 };
 
+/**
+ * Layouts:
+ * 0 = 1 photo
+ * 1 = 2 photos
+ * 2 = 3 photos
+ * 3 = 4 photos
+ */
 const PAGE_LAYOUTS: AlbumTile[][] = [
-  [{ x: 10, y: 12, w: 68, h: 54, rotate: -1.2 }],
+  [{ x: 2.6, y: 4, w: 94.8, h: 88.2, rotate: 0 }],
   [
-    { x: 8, y: 12, w: 33, h: 54, rotate: -1.6 },
-    { x: 45, y: 12, w: 33, h: 54, rotate: 1.4 },
+    { x: 2.8, y: 4.2, w: 46.2, h: 87.5, rotate: -0.9 },
+    { x: 51, y: 4.2, w: 46.2, h: 87.5, rotate: 0.9 },
   ],
   [
-    { x: 8, y: 10, w: 31, h: 56, rotate: -1.8 },
-    { x: 43, y: 10, w: 35, h: 26, rotate: 1.1 },
-    { x: 43, y: 40, w: 35, h: 26, rotate: -1.2 },
+    { x: 2.8, y: 4.2, w: 57.2, h: 87.4, rotate: -0.7 },
+    { x: 62.2, y: 4.2, w: 34.8, h: 41.8, rotate: 0.8 },
+    { x: 62.2, y: 49.8, w: 34.8, h: 41.8, rotate: -0.7 },
   ],
   [
-    { x: 8, y: 10, w: 34, h: 26, rotate: -1.5 },
-    { x: 46, y: 10, w: 32, h: 26, rotate: 1.2 },
-    { x: 8, y: 40, w: 32, h: 26, rotate: -1.1 },
-    { x: 44, y: 40, w: 34, h: 26, rotate: 1.3 },
-  ],
-  [
-    { x: 8, y: 10, w: 28, h: 26, rotate: -2.4 },
-    { x: 40, y: 10, w: 38, h: 56, rotate: 1.2 },
-    { x: 8, y: 40, w: 28, h: 26, rotate: -1.1 },
-  ],
-  [
-    { x: 8, y: 10, w: 70, h: 28, rotate: -1.2 },
-    { x: 8, y: 42, w: 22, h: 24, rotate: -1.4 },
-    { x: 33, y: 42, w: 22, h: 24, rotate: 1.1 },
-    { x: 58, y: 42, w: 20, h: 24, rotate: -1.1 },
+    { x: 2.8, y: 4.2, w: 46.2, h: 41.8, rotate: -0.5 },
+    { x: 51, y: 4.2, w: 46.2, h: 41.8, rotate: 0.5 },
+    { x: 2.8, y: 49.8, w: 46.2, h: 41.8, rotate: 0.4 },
+    { x: 51, y: 49.8, w: 46.2, h: 41.8, rotate: -0.4 },
   ],
 ];
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
 
 function normalizeSpread(page: number, pageCount: number) {
   if (page < 0) return -1;
@@ -72,11 +74,44 @@ function normalizeSpread(page: number, pageCount: number) {
   return safe % 2 === 0 ? safe : safe - 1;
 }
 
+function getLayoutIdFromSlotCount(slotCount: number) {
+  const safeCount = clamp(slotCount || 1, 1, 4);
+  return safeCount - 1;
+}
+
+function resolveLayoutId(page: BookPageMedia | undefined, pageIndex: number) {
+  if (typeof page?.layoutId === "number" && page.layoutId >= 0 && page.layoutId <= 3) {
+    return page.layoutId;
+  }
+
+  const slotCount = Array.isArray(page?.slots) ? page!.slots.length : 0;
+
+  if (slotCount > 0) {
+    return getLayoutIdFromSlotCount(slotCount);
+  }
+
+  return pageIndex % PAGE_LAYOUTS.length;
+}
+
+function buildSlotsForLayout(
+  page: BookPageMedia | undefined,
+  layoutLength: number
+): Array<BookSlotMedia | null> {
+  const current = Array.isArray(page?.slots) ? [...page!.slots] : [];
+  const trimmed = current.slice(0, layoutLength);
+
+  while (trimmed.length < layoutLength) {
+    trimmed.push(null);
+  }
+
+  return trimmed;
+}
+
 function renderMedia(media: BookSlotMedia | null | undefined, alt: string) {
   if (!media?.url) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-[0.7rem] bg-[#f5f5f1] text-center text-xs font-medium text-slate-400">
-        Add photo
+      <div className="flex h-full w-full items-center justify-center rounded-[0.45rem] bg-[#f3f3ef] text-center text-[11px] font-semibold tracking-[0.18em] text-slate-500">
+        DOUBLE CLICK
       </div>
     );
   }
@@ -86,7 +121,7 @@ function renderMedia(media: BookSlotMedia | null | undefined, alt: string) {
       <video
         src={media.url}
         poster={media.poster}
-        className="h-full w-full rounded-[0.7rem] object-cover"
+        className="h-full w-full rounded-[0.45rem] object-cover"
         controls
         playsInline
         preload="metadata"
@@ -98,7 +133,7 @@ function renderMedia(media: BookSlotMedia | null | undefined, alt: string) {
     <img
       src={media.url}
       alt={alt}
-      className="h-full w-full rounded-[0.7rem] object-cover"
+      className="h-full w-full rounded-[0.45rem] object-cover"
       draggable={false}
     />
   );
@@ -106,7 +141,7 @@ function renderMedia(media: BookSlotMedia | null | undefined, alt: string) {
 
 function getCoverPreview(pages: BookPageMedia[]) {
   return pages
-    .flatMap((page) => page.slots)
+    .flatMap((page) => (Array.isArray(page.slots) ? page.slots : []))
     .filter((slot): slot is BookSlotMedia => Boolean(slot?.url))
     .slice(0, 3);
 }
@@ -124,36 +159,43 @@ function AlbumPage({
   onUploadPage?: (encodedSlotIndex: number) => void;
   side: "left" | "right";
 }) {
-  const safeLayoutId = page?.layoutId ?? 0;
-  const layout = PAGE_LAYOUTS[safeLayoutId % PAGE_LAYOUTS.length];
-  const slots = page?.slots ?? Array.from({ length: layout.length }, () => null);
+  const resolvedLayoutId = resolveLayoutId(page, pageIndex);
+  const layout = PAGE_LAYOUTS[resolvedLayoutId];
+  const slots = buildSlotsForLayout(page, layout.length);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#fbfbf8]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.95),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(0,0,0,0.03),transparent_30%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.96),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(0,0,0,0.03),transparent_30%)]" />
 
       <div
-        className={`absolute inset-y-0 ${
-          side === "left" ? "right-0" : "left-0"
-        } w-[10px] bg-gradient-to-${side === "left" ? "l" : "r"} from-black/5 to-transparent`}
+        className="absolute inset-y-0 w-[10px]"
+        style={{
+          [side === "left" ? "right" : "left"]: 0,
+          background:
+            side === "left"
+              ? "linear-gradient(to left, rgba(0,0,0,0.05), transparent)"
+              : "linear-gradient(to right, rgba(0,0,0,0.05), transparent)",
+        }}
       />
 
-      <div className="absolute inset-[4.5%] rounded-[1.3rem] border border-[#ecece6] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.7)]" />
+      <div className="absolute inset-[2.1%] rounded-[1.8rem] border border-[#ecece6] bg-[#fdfdfa]" />
 
       {layout.map((tile, slotIndex) => {
         const media = slots[slotIndex] ?? null;
         const encodedSlotIndex = pageIndex * 10 + slotIndex;
 
         return (
-          <div
+          <button
             key={`${pageIndex}-${slotIndex}`}
-            className="absolute rounded-[0.9rem] bg-white p-[8px] shadow-[0_18px_35px_rgba(0,0,0,0.12)]"
+            type="button"
+            className="absolute overflow-hidden rounded-[0.8rem] bg-white p-[6px] shadow-[0_14px_28px_rgba(0,0,0,0.10)]"
             style={{
               left: `${tile.x}%`,
               top: `${tile.y}%`,
               width: `${tile.w}%`,
               height: `${tile.h}%`,
               transform: `rotate(${tile.rotate}deg)`,
+              cursor: editable ? "pointer" : "default",
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
@@ -162,26 +204,20 @@ function AlbumPage({
               }
             }}
           >
-            <div className="relative h-full w-full overflow-hidden rounded-[0.75rem] bg-[#f6f6f2]">
+            <div className="relative h-full w-full overflow-hidden rounded-[0.5rem] bg-[#f3f3ef]">
               {renderMedia(
                 media,
                 `Album page ${pageIndex + 1} photo ${slotIndex + 1}`
               )}
-
-              {!media?.url && editable ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/40 text-center text-[11px] font-semibold tracking-[0.14em] text-slate-500">
-                  DOUBLE CLICK
-                </div>
-              ) : null}
             </div>
-          </div>
+          </button>
         );
       })}
 
       <div
         className={`absolute bottom-4 ${
           side === "left" ? "left-5" : "right-5"
-        } rounded-full border border-slate-200 bg-white/92 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-slate-500 shadow-sm`}
+        } rounded-full border border-slate-200 bg-white/95 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-slate-500 shadow-sm`}
       >
         {pageIndex + 1}
       </div>
@@ -199,12 +235,17 @@ export function MemoryBook({
   width = 760,
   height = 460,
   coverImage,
+  coverPositionX = 50,
+  coverPositionY = 50,
   title = "Our Album",
 }: MemoryBookProps) {
   const [internalPage, setInternalPage] = useState(-1);
   const [turnState, setTurnState] = useState<TurnState>("idle");
 
-  const controlled = typeof currentPage === "number";
+  // add this new one - receiver side next/prev freeze wena issue fix
+  const controlled =
+    typeof currentPage === "number" && typeof onCurrentPageChange === "function";
+
   const activePage = normalizeSpread(
     controlled ? currentPage : internalPage,
     pageCount
@@ -212,11 +253,13 @@ export function MemoryBook({
 
   const setPage = (page: number) => {
     const normalized = normalizeSpread(page, pageCount);
-    if (onCurrentPageChange) {
+
+    if (controlled && onCurrentPageChange) {
       onCurrentPageChange(normalized);
-    } else {
-      setInternalPage(normalized);
+      return;
     }
+
+    setInternalPage(normalized);
   };
 
   const leftIndex = activePage;
@@ -351,10 +394,13 @@ export function MemoryBook({
                   <img
                     src={coverImage}
                     alt="Album cover"
-                    className="absolute inset-0 h-full w-full object-cover opacity-[0.12]"
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{
+                      objectPosition: `${coverPositionX}% ${coverPositionY}%`,
+                    }}
                     draggable={false}
                   />
-                  <div className="absolute inset-0 bg-white/80" />
+                  <div className="absolute inset-0 bg-white/70" />
                 </>
               ) : null}
 
@@ -440,7 +486,7 @@ export function MemoryBook({
             <div className="absolute inset-y-0 left-1/2 z-20 w-[24px] -translate-x-1/2 bg-gradient-to-r from-black/[0.06] via-white to-black/[0.06]" />
 
             <div className="relative flex h-full w-full">
-              <div className="relative flex-1 overflow-hidden border-r border-slate-200">
+              <div className="relative flex-1 overflow-hidden">
                 <AlbumPage
                   pageIndex={leftIndex}
                   page={pages[leftIndex]}
