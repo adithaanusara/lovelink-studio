@@ -576,7 +576,7 @@ export function AdvancedCreateForm() {
   };
 
   return (
-    <main className="min-h-screen bg-[#050816] text-white">
+    <main className="min-h-screen bg-sky-100 text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-[1500px] flex-col px-4 py-4">
         <input
           ref={imageInputRef}
@@ -684,7 +684,7 @@ export function AdvancedCreateForm() {
           }}
         />
 
-        <div className="mb-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-3 backdrop-blur-xl">
+        <div className="mb-4 rounded-[1.5rem] border border-sky-300/80 bg-sky-100/90 p-3 backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-3">
             {editorTemplates.map((tpl) => (
               <button
@@ -694,7 +694,7 @@ export function AdvancedCreateForm() {
                 className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                   tpl.id === template.id
                     ? "bg-pink-500 text-white"
-                    : "bg-white/5 text-white/80 hover:bg-white/10"
+                    : "bg-sky-100 text-slate-700 hover:bg-sky-200"
                 }`}
               >
                 {tpl.name}
@@ -708,7 +708,7 @@ export function AdvancedCreateForm() {
                   setError("");
                   setShowDetailsModal(true);
                 }}
-                className="rounded-full bg-white/10 px-5 py-3 text-sm font-semibold"
+                className="rounded-full bg-sky-100 px-5 py-3 text-sm font-semibold text-slate-700"
               >
                 Customize URL
               </button>
@@ -724,7 +724,7 @@ export function AdvancedCreateForm() {
           </div>
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-3">
+        <div className="mb-4 flex flex-wrap gap-3 rounded-[1.5rem] border border-sky-300/80 bg-sky-100/90 p-3">
           {scenes.map((scene, index) => (
             <button
               key={scene.id}
@@ -738,7 +738,7 @@ export function AdvancedCreateForm() {
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 index === activeSceneIndex
                   ? "bg-gradient-to-r from-pink-500 to-violet-600 text-white"
-                  : "bg-white/10 text-white/80 hover:bg-white/15"
+                  : "bg-sky-100 text-slate-700 hover:bg-sky-200"
               }`}
             >
               {scene.name}
@@ -747,7 +747,7 @@ export function AdvancedCreateForm() {
         </div>
 
         <div className="grid flex-1 gap-4 lg:grid-cols-[1fr_320px]">
-          <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
+          <div className="overflow-hidden rounded-[1.75rem] border border-sky-300/80 bg-sky-100/90 p-4">
             <LayoutEditor
               key={activeScene.id}
               items={items}
@@ -779,7 +779,7 @@ export function AdvancedCreateForm() {
             />
           </div>
 
-          <div className="space-y-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-4">
+          <div className="space-y-4 rounded-[1.75rem] border border-sky-300/80 bg-sky-100/90 p-4">
             <h2 className="text-lg font-bold">Editor tools</h2>
 
             {isPuzzleScene ? (
@@ -793,13 +793,13 @@ export function AdvancedCreateForm() {
                 <button
                   type="button"
                   onClick={() => puzzleImageInputRef.current?.click()}
-                  className="w-full rounded-2xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-cyan-500/30 hover:to-blue-500/30"
+                  className="w-full rounded-2xl bg-gradient-to-r from-cyan-100 to-blue-100 px-4 py-4 text-left text-sm font-medium text-slate-700 transition hover:from-cyan-200 hover:to-blue-200"
                 >
                   Upload puzzle image
                 </button>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <label className="mb-2 block text-sm font-semibold text-white">
+                <div className="rounded-2xl border border-sky-300/80 bg-sky-100/95 p-4">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Puzzle time limit (seconds)
                   </label>
 
@@ -817,7 +817,7 @@ export function AdvancedCreateForm() {
                         ),
                       })
                     }
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none"
+                    className="w-full rounded-xl border border-sky-300 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
                   />
                 </div>
               </>
@@ -846,7 +846,7 @@ export function AdvancedCreateForm() {
                       handleChallengeTargetChange(e.target.value)
                     }
                     placeholder="e.g. 30"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none"
+                    className="w-full rounded-xl border border-sky-300 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
                   />
 
                   <p className="text-xs text-yellow-50/75">
@@ -858,13 +858,13 @@ export function AdvancedCreateForm() {
                 <button
                   type="button"
                   onClick={() => sceneBackgroundInputRef.current?.click()}
-                  className="w-full rounded-2xl bg-gradient-to-r from-pink-500/20 to-violet-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-pink-500/30 hover:to-violet-500/30"
+                  className="w-full rounded-2xl bg-gradient-to-r from-pink-100 to-violet-100 px-4 py-4 text-left text-sm font-medium text-slate-700 transition hover:from-pink-200 hover:to-violet-200"
                 >
                   Upload {activeScene.name.toLowerCase()} image
                 </button>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <label className="mb-2 block text-sm font-semibold text-white">
+                <div className="rounded-2xl border border-sky-300/80 bg-sky-100/95 p-4">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Animation selector
                   </label>
                   <select
@@ -872,7 +872,7 @@ export function AdvancedCreateForm() {
                     onChange={(e) =>
                       setAnimation(e.target.value as AnimationType)
                     }
-                    className="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-3 text-slate-800 outline-none"
                   >
                     <option value="none">No animation</option>
                     <option value="falling-hearts">Falling hearts</option>
@@ -887,7 +887,7 @@ export function AdvancedCreateForm() {
                   <button
                     type="button"
                     onClick={addTextBlock}
-                    className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+                    className="w-full rounded-2xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
                   >
                     + Add text
                   </button>
@@ -895,7 +895,7 @@ export function AdvancedCreateForm() {
                   <button
                     type="button"
                     onClick={addEmojiBlock}
-                    className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+                    className="w-full rounded-2xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
                   >
                     + Add emoji
                   </button>
@@ -903,7 +903,7 @@ export function AdvancedCreateForm() {
                   <button
                     type="button"
                     onClick={addEmptyImageBlock}
-                    className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+                    className="w-full rounded-2xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
                   >
                     + Add image box
                   </button>
@@ -919,14 +919,14 @@ export function AdvancedCreateForm() {
                   <button
                     type="button"
                     onClick={() => sceneBackgroundInputRef.current?.click()}
-                    className="w-full rounded-2xl bg-gradient-to-r from-pink-500/20 to-violet-500/20 px-4 py-4 text-left text-sm font-medium text-white transition hover:from-pink-500/30 hover:to-violet-500/30"
+                    className="w-full rounded-2xl bg-gradient-to-r from-pink-100 to-violet-100 px-4 py-4 text-left text-sm font-medium text-slate-700 transition hover:from-pink-200 hover:to-violet-200"
                   >
                     Upload {activeScene.name.toLowerCase()} image
                   </button>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <label className="mb-2 block text-sm font-semibold text-white">
+                <div className="rounded-2xl border border-sky-300/80 bg-sky-100/95 p-4">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Animation selector
                   </label>
                   <select
@@ -934,7 +934,7 @@ export function AdvancedCreateForm() {
                     onChange={(e) =>
                       setAnimation(e.target.value as AnimationType)
                     }
-                    className="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-3 text-slate-800 outline-none"
                   >
                     <option value="none">No animation</option>
                     <option value="falling-hearts">Falling hearts</option>
@@ -943,9 +943,9 @@ export function AdvancedCreateForm() {
                   </select>
                 </div>
 
-                <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-3">
-                    <label className="mb-2 block text-sm font-semibold text-white">
+                <div className="space-y-3 rounded-2xl border border-sky-300/80 bg-sky-100/95 p-4">
+                  <div className="rounded-2xl border border-sky-300/80 bg-sky-100 p-3">
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
                       Album title
                     </label>
                     <input
@@ -957,7 +957,7 @@ export function AdvancedCreateForm() {
                           updateActiveBook({ title: value });
                         }
                       }}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none"
+                      className="w-full rounded-xl border border-sky-300 bg-sky-100/95 px-3 py-3 text-sm text-slate-800 outline-none"
                       placeholder="Our Album"
                     />
                   </div>
@@ -965,7 +965,7 @@ export function AdvancedCreateForm() {
                   <button
                     type="button"
                     onClick={() => setShowBookOptions((prev) => !prev)}
-                    className="w-full rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+                    className="w-full rounded-2xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
                   >
                     {activeScene.book?.enabled
                       ? "Edit album"
@@ -977,21 +977,21 @@ export function AdvancedCreateForm() {
                       <button
                         type="button"
                         onClick={() => createBook(4)}
-                        className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                        className="w-full rounded-xl bg-sky-100 px-4 py-3 text-left text-sm text-slate-700"
                       >
                         4 pages
                       </button>
                       <button
                         type="button"
                         onClick={() => createBook(6)}
-                        className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                        className="w-full rounded-xl bg-sky-100 px-4 py-3 text-left text-sm text-slate-700"
                       >
                         6 pages
                       </button>
                       <button
                         type="button"
                         onClick={() => createBook(8)}
-                        className="w-full rounded-xl bg-slate-900/70 px-4 py-3 text-left text-sm text-white"
+                        className="w-full rounded-xl bg-sky-100 px-4 py-3 text-left text-sm text-slate-700"
                       >
                         8 pages
                       </button>
@@ -1008,16 +1008,16 @@ export function AdvancedCreateForm() {
                     </div>
                   ) : null}
 
-                  <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-900/40 p-4">
+                  <div className="grid gap-3 rounded-2xl border border-sky-300/80 bg-sky-100 p-4">
                     <button
                       type="button"
                       onClick={() => bookCoverInputRef.current?.click()}
-                      className="w-full rounded-xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/15"
+                      className="w-full rounded-xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
                     >
                       Upload album cover image
                     </button>
 
-                    <label className="grid gap-2 text-sm text-slate-300">
+                    <label className="grid gap-2 text-sm text-slate-700">
                       Cover image horizontal position
                       <input
                         type="range"
@@ -1032,7 +1032,7 @@ export function AdvancedCreateForm() {
                       />
                     </label>
 
-                    <label className="grid gap-2 text-sm text-slate-300">
+                    <label className="grid gap-2 text-sm text-slate-700">
                       Cover image vertical position
                       <input
                         type="range"
@@ -1047,7 +1047,7 @@ export function AdvancedCreateForm() {
                       />
                     </label>
 
-                    <p className="text-xs leading-6 text-slate-400">
+                    <p className="text-xs leading-6 text-slate-600">
                       Album pages support 1 to 4 photos. Double click any photo
                       box inside the album to upload.
                     </p>
@@ -1063,10 +1063,10 @@ export function AdvancedCreateForm() {
                       onChange={(e) =>
                         updateItem(selected.id, { content: e.target.value })
                       }
-                      className="min-h-24 w-full rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-white"
+                      className="min-h-24 w-full rounded-2xl border border-sky-300 bg-sky-100/95 p-3 text-slate-800"
                     />
 
-                    <label className="grid gap-2 text-sm text-slate-300">
+                    <label className="grid gap-2 text-sm text-slate-700">
                       Font size
                       <input
                         type="range"
@@ -1081,7 +1081,7 @@ export function AdvancedCreateForm() {
                       />
                     </label>
 
-                    <label className="grid gap-2 text-sm text-slate-300">
+                    <label className="grid gap-2 text-sm text-slate-700">
                       Color
                       <input
                         type="color"
@@ -1092,7 +1092,7 @@ export function AdvancedCreateForm() {
                       />
                     </label>
 
-                    <label className="grid gap-2 text-sm text-slate-300">
+                    <label className="grid gap-2 text-sm text-slate-700">
                       Weight
                       <input
                         type="range"
@@ -1122,12 +1122,12 @@ export function AdvancedCreateForm() {
       </div>
 
       {showDetailsModal ? (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[#0b1226] p-6 shadow-2xl">
-            <p className="text-sm uppercase tracking-[0.3em] text-pink-200">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-[2rem] border border-sky-300/80 bg-sky-100/95 p-6 shadow-2xl">
+            <p className="text-sm uppercase tracking-[0.3em] text-pink-500">
               Customize URL
             </p>
-            <h3 className="mt-3 text-3xl font-bold text-white">
+            <h3 className="mt-3 text-3xl font-bold text-slate-900">
               Create a beautiful share link
             </h3>
 
@@ -1135,28 +1135,28 @@ export function AdvancedCreateForm() {
               <input
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-white"
+                className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-4 text-slate-800"
                 placeholder="Recipient name"
               />
 
               <input
                 value={occasion}
                 onChange={(e) => setOccasion(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-white"
+                className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-4 text-slate-800"
                 placeholder="Occasion (Birthday, Valentine, Anniversary...)"
               />
 
               <input
                 value={sender}
                 onChange={(e) => setSender(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-white"
+                className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-4 text-slate-800"
                 placeholder="From name"
               />
 
               <input
                 value={customKeyword}
                 onChange={(e) => setCustomKeyword(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-white"
+                className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-4 text-slate-800"
                 placeholder="Optional custom keyword"
               />
 
@@ -1174,7 +1174,7 @@ export function AdvancedCreateForm() {
               <button
                 type="button"
                 onClick={() => setShowDetailsModal(false)}
-                className="rounded-full bg-white/10 px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-full bg-sky-200 px-5 py-3 text-sm font-semibold text-slate-700"
               >
                 Close
               </button>
@@ -1192,17 +1192,17 @@ export function AdvancedCreateForm() {
       ) : null}
 
       {shareUrl ? (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-[2rem] border border-emerald-400/20 bg-[#0b1226] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[2rem] border border-sky-300/70 bg-sky-100/95 p-6 shadow-2xl">
             <p className="text-center text-sm uppercase tracking-[0.3em] text-emerald-200">
               Ready to share
             </p>
 
-            <h3 className="mt-3 text-center text-3xl font-bold text-white">
+            <h3 className="mt-3 text-center text-3xl font-bold text-slate-900">
               Your URL is ready
             </h3>
 
-            <div className="mt-6 break-all rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-sm text-emerald-100">
+            <div className="mt-6 break-all rounded-2xl border border-sky-300/80 bg-sky-100 p-4 text-center text-sm text-emerald-700">
               {shareUrl}
             </div>
 
@@ -1219,7 +1219,7 @@ export function AdvancedCreateForm() {
                 href={shareUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full bg-white/10 px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-full bg-sky-100 px-5 py-3 text-sm font-semibold text-slate-700"
               >
                 Open page
               </a>
@@ -1227,7 +1227,7 @@ export function AdvancedCreateForm() {
               <button
                 type="button"
                 onClick={() => setShareUrl("")}
-                className="rounded-full bg-white/10 px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-full bg-sky-100 px-5 py-3 text-sm font-semibold text-slate-700"
               >
                 Close
               </button>

@@ -156,9 +156,9 @@ export function CreateMemoryForm() {
     <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
       <form onSubmit={handleSubmit} className="glass rounded-[2rem] p-6 lg:p-8">
         <div className="mb-8 space-y-2">
-          <p className="text-sm uppercase tracking-[0.3em] text-pink-200">Builder</p>
+          <p className="text-sm uppercase tracking-[0.3em] text-pink-600">Builder</p>
           <h1 className="text-3xl font-bold">Create a surprise page</h1>
-          <p className="text-slate-300">
+          <p className="text-slate-700">
             Fill the details, upload photos, and publish your private memory link.
           </p>
         </div>
@@ -289,17 +289,17 @@ export function CreateMemoryForm() {
       <aside className="space-y-5">
         <div className="glass rounded-[2rem] p-6">
           <h2 className="text-xl font-semibold">Live content status</h2>
-          <div className="mt-5 space-y-4 text-sm text-slate-300">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="mt-5 space-y-4 text-sm text-slate-700">
+            <div className="rounded-2xl border border-sky-200/80 bg-sky-50/90 p-4">
               Cover image: {coverImage ? "Uploaded" : "Waiting"}
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-2xl border border-sky-200/80 bg-sky-50/90 p-4">
               Gallery images: {previewGallery.length}
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-2xl border border-sky-200/80 bg-sky-50/90 p-4">
               Theme: {theme}
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-2xl border border-sky-200/80 bg-sky-50/90 p-4">
               Occasion: {occasion}
             </div>
           </div>
@@ -323,7 +323,7 @@ export function CreateMemoryForm() {
                 {previewGallery.map((item, index) => (
                   <div
                     key={`${item.imageUrl}-${index}`}
-                    className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-2"
+                    className="space-y-2 rounded-2xl border border-sky-200/80 bg-sky-50/90 p-2"
                   >
                     <img
                       src={item.imageUrl}
@@ -394,15 +394,15 @@ export function CreateMemoryForm() {
         .input {
           width: 100%;
           border-radius: 1rem;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(125, 211, 252, 0.7);
+          background: rgba(239, 246, 255, 0.92);
           padding: 0.9rem 1rem;
-          color: white;
+          color: #0f172a;
           outline: none;
         }
         .input:focus {
-          border-color: rgba(236, 72, 153, 0.6);
-          box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
+          border-color: rgba(56, 189, 248, 0.9);
+          box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
         }
       `}</style>
     </div>
@@ -412,7 +412,7 @@ export function CreateMemoryForm() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-medium text-slate-200">{label}</span>
+      <span className="text-sm font-medium text-slate-700">{label}</span>
       {children}
     </label>
   );
@@ -430,20 +430,20 @@ function UploadBlock({
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
-    <label className="rounded-[1.5rem] border border-dashed border-white/20 bg-white/5 p-5 transition hover:bg-white/10">
+    <label className="rounded-[1.5rem] border border-dashed border-sky-300/70 bg-sky-50/90 p-5 transition hover:bg-sky-100">
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-          <UploadCloud className="h-5 w-5 text-pink-200" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-200/60">
+          <UploadCloud className="h-5 w-5 text-pink-600" />
         </div>
         <div className="flex-1">
           <p className="font-semibold">{label}</p>
-          <p className="mt-1 text-sm leading-6 text-slate-300">{helper}</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{helper}</p>
           <input
             type="file"
             accept="image/*"
             multiple={multiple}
             onChange={onChange}
-            className="mt-4 block w-full text-sm text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-pink-500/20 file:px-4 file:py-2 file:text-sm file:font-medium file:text-pink-100"
+            className="mt-4 block w-full text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-pink-500/20 file:px-4 file:py-2 file:text-sm file:font-medium file:text-pink-700"
           />
         </div>
       </div>
@@ -453,7 +453,7 @@ function UploadBlock({
 
 function EmptyState() {
   return (
-    <div className="flex h-56 items-center justify-center rounded-[1.5rem] border border-dashed border-white/15 bg-white/5 text-sm text-slate-400">
+    <div className="flex h-56 items-center justify-center rounded-[1.5rem] border border-dashed border-sky-300/70 bg-sky-50/90 text-sm text-slate-600">
       Upload a cover image to preview here.
     </div>
   );

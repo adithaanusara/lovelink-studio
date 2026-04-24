@@ -76,12 +76,12 @@ export default async function MemoryPage({
   );
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-sky-100 text-slate-900">
       {storyScenes && storyScenes.length > 0 ? (
         <StorySceneViewer scenes={storyScenes} animation={animation} />
       ) : (
         <section className="mx-auto flex min-h-screen max-w-[1400px] items-center justify-center px-6 text-center">
-          <div className="rounded-[2rem] border border-white/10 bg-white/5 p-10 text-white/80">
+          <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/90 p-10 text-slate-700">
             This page has no scene data.
           </div>
         </section>
@@ -90,8 +90,8 @@ export default async function MemoryPage({
       {(project.musicUrl || project.gallery.length > 0) && (
         <section className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 px-6 py-12 md:px-10">
           {project.musicUrl ? (
-            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-              <div className="mb-4 flex items-center gap-3 text-pink-200">
+            <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/90 p-6 backdrop-blur-md">
+              <div className="mb-4 flex items-center gap-3 text-sky-800">
                 <Music4 className="h-5 w-5" />
                 <p className="text-sm uppercase tracking-[0.3em]">Song for this page</p>
               </div>
@@ -100,15 +100,15 @@ export default async function MemoryPage({
           ) : null}
 
           {project.gallery.length > 0 ? (
-            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-md">
-              <p className="mb-5 text-sm uppercase tracking-[0.3em] text-pink-200">
+            <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/90 p-6 backdrop-blur-md">
+              <p className="mb-5 text-sm uppercase tracking-[0.3em] text-sky-800">
                 Gallery memories
               </p>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {project.gallery.map((image) => (
                   <div
                     key={image.id}
-                    className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5"
+                    className="overflow-hidden rounded-[1.5rem] border border-sky-300/80 bg-sky-100/85"
                   >
                     <img
                       src={image.imageUrl}

@@ -18,12 +18,12 @@ export function TemplateSelector({ templates, activeId, onSelect }: Props) {
           onClick={() => onSelect(template)}
           className={`rounded-3xl border p-4 text-left transition ${
             activeId === template.id
-              ? "border-pink-400 bg-pink-500/10"
-              : "border-white/10 bg-white/5 hover:bg-white/10"
+              ? "border-pink-400 bg-pink-100/70"
+              : "border-sky-400/70 bg-sky-100/90 hover:bg-sky-200"
           }`}
         >
           <div className="mb-3 h-28 rounded-2xl" style={{ background: template.background }} />
-          <p className="font-semibold text-white">{template.name}</p>
+          <p className="font-semibold text-slate-900">{template.name}</p>
         </button>
       ))}
     </div>

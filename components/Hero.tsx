@@ -6,7 +6,7 @@ import { Heart, Sparkles, ArrowRight } from "lucide-react";
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-black text-white">
+    <section className="relative min-h-screen overflow-hidden bg-sky-200 text-slate-900">
       <video
         className="absolute inset-0 h-full w-full object-cover"
         autoPlay
@@ -18,12 +18,12 @@ export function Hero() {
         Your browser does not support the video tag.
       </video>
 
-      <div className="absolute inset-0 bg-black/45" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-[#050816]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(236,72,153,0.18),transparent_32%),radial-gradient(circle_at_80%_20%,rgba(139,92,246,0.18),transparent_28%)]" />
+      <div className="absolute inset-0 bg-sky-200/70" />
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-100/74 via-sky-200/66 to-blue-300/72" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.26),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.24),transparent_30%)]" />
 
-      <div className="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-pink-500/20 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-10 right-0 h-80 w-80 rounded-full bg-violet-500/20 blur-3xl" />
+      <div className="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-10 right-0 h-80 w-80 rounded-full bg-blue-300/30 blur-3xl" />
 
       <div className="relative z-10 container flex min-h-screen items-center px-6 py-16">
         <div className="grid w-full items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
@@ -33,7 +33,7 @@ export function Hero() {
             transition={{ duration: 0.8 }}
             className="max-w-3xl"
           >
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-pink-100 backdrop-blur-md">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-sky-400/80 bg-sky-100/90 px-4 py-2 text-sm text-sky-900 backdrop-blur-md">
               <Sparkles className="h-4 w-4" />
               Cinematic animated surprise pages
             </div>
@@ -46,7 +46,7 @@ export function Hero() {
               into an immersive digital memory.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 md:text-xl">
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-700 md:text-xl">
               Create a beautiful romantic page with your own video, photos,
               heartfelt text, soft motion, and one private link to share with
               someone special.
@@ -61,22 +61,36 @@ export function Hero() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
 
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-full border border-sky-500/60 bg-sky-100/95 px-7 py-4 text-base font-semibold text-slate-800 backdrop-blur-md transition hover:bg-sky-200"
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 rounded-full border border-violet-300/70 bg-violet-100/80 px-7 py-4 text-base font-semibold text-violet-700 backdrop-blur-md transition hover:bg-violet-200/80"
+              >
+                Sign Up
+              </Link>
+
               <a
                 href="#features"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-7 py-4 text-base font-semibold text-white/90 backdrop-blur-md transition hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-full border border-sky-500/60 bg-sky-100/95 px-7 py-4 text-base font-semibold text-slate-800 backdrop-blur-md transition hover:bg-sky-200"
               >
                 See features
               </a>
             </div>
 
-            <div className="mt-10 flex flex-wrap gap-3 text-sm text-white/75">
-              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">
+            <div className="mt-10 flex flex-wrap gap-3 text-sm text-slate-700">
+              <span className="rounded-full border border-sky-400/80 bg-sky-100/90 px-4 py-2 backdrop-blur-md">
                 Video hero
               </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">
+              <span className="rounded-full border border-sky-400/80 bg-sky-100/90 px-4 py-2 backdrop-blur-md">
                 Photos + message
               </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">
+              <span className="rounded-full border border-sky-400/80 bg-sky-100/90 px-4 py-2 backdrop-blur-md">
                 Private share link
               </span>
             </div>
@@ -88,15 +102,15 @@ export function Hero() {
             transition={{ duration: 0.9, delay: 0.15 }}
             className="justify-self-end"
           >
-            <div className="relative mx-auto w-full max-w-[420px] rounded-[2rem] border border-white/15 bg-white/8 p-4 shadow-[0_25px_100px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-              <div className="mb-3 flex items-center justify-between px-2 pt-1 text-sm text-white/75">
+            <div className="relative mx-auto w-full max-w-[420px] rounded-[2rem] border border-sky-400/80 bg-sky-100/90 p-4 shadow-[0_20px_70px_rgba(59,130,246,0.22)] backdrop-blur-2xl">
+              <div className="mb-3 flex items-center justify-between px-2 pt-1 text-sm text-slate-600">
                 <span>Live romantic preview</span>
-                <span className="rounded-full bg-white/10 px-3 py-1 text-xs">
+                <span className="rounded-full bg-sky-200 px-3 py-1 text-xs text-sky-800">
                   Immersive
                 </span>
               </div>
 
-              <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/30">
+              <div className="overflow-hidden rounded-[1.6rem] border border-sky-300/70 bg-sky-100/60">
                 <video
                   className="h-[500px] w-full object-cover"
                   autoPlay
@@ -108,8 +122,8 @@ export function Hero() {
                 </video>
               </div>
 
-              <div className="absolute bottom-8 left-8 right-8 rounded-[1.5rem] border border-white/10 bg-black/35 p-5 backdrop-blur-xl">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-pink-500/15 px-3 py-1 text-xs uppercase tracking-[0.28em] text-pink-100">
+              <div className="absolute bottom-8 left-8 right-8 rounded-[1.5rem] border border-sky-400/80 bg-sky-100/90 p-5 backdrop-blur-xl">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1 text-xs uppercase tracking-[0.28em] text-pink-600">
                   <Heart className="h-3.5 w-3.5" />
                   For someone special
                 </div>
@@ -118,7 +132,7 @@ export function Hero() {
                   Happy Birthday, My Favorite Person
                 </h3>
 
-                <p className="mt-3 text-sm leading-7 text-white/80">
+                <p className="mt-3 text-sm leading-7 text-slate-700">
                   A private page filled with your memories, your message, and a
                   cinematic first impression.
                 </p>

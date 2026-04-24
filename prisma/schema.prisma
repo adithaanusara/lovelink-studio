@@ -42,3 +42,26 @@ model GalleryImage {
   createdAt   DateTime @default(now())
   project     MemoryProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
+
+model User {
+  id            String             @id @default(cuid())
+  name          String
+  email         String             @unique
+  passwordHash  String
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  resetOtps     PasswordResetOtp[]
+}
+
+model PasswordResetOtp {
+  id          String    @id @default(cuid())
+  userId      String
+  codeHash    String
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

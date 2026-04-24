@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -17,16 +17,16 @@ body {
   padding: 0;
   margin: 0;
   min-height: 100%;
-  background: #050816;
-  color: #f8fafc;
+  background: #dbeafe;
+  color: #0f172a;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 body {
   background-image:
-    radial-gradient(circle at top left, rgba(236, 72, 153, 0.14), transparent 20%),
-    radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.18), transparent 25%),
-    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.36), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.34), transparent 34%),
+    linear-gradient(180deg, #dbeafe 0%, #bfdbfe 52%, #93c5fd 100%);
 }
 
 a {
@@ -53,12 +53,13 @@ button {
 
 .glass {
   backdrop-filter: blur(16px);
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(191, 219, 254, 0.74);
+  border: 1px solid rgba(56, 189, 248, 0.55);
 }
 
 .gradient-text {
   background: linear-gradient(90deg, #f9a8d4 0%, #c4b5fd 50%, #fde68a 100%);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

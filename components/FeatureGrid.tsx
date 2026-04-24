@@ -21,9 +21,9 @@ export function FeatureGrid() {
   return (
     <section className="container py-10 lg:py-16">
       <div className="mb-8 max-w-2xl space-y-3">
-        <p className="text-sm uppercase tracking-[0.3em] text-pink-200">Why this product works</p>
+        <p className="text-sm uppercase tracking-[0.3em] text-sky-700">Why this product works</p>
         <h2 className="text-3xl font-bold md:text-4xl">A premium surprise experience, not just another photo gallery.</h2>
-        <p className="text-slate-300">
+        <p className="text-slate-700">
           This app helps users express emotion through design. It feels premium, personal, and highly shareable.
         </p>
       </div>
@@ -32,7 +32,7 @@ export function FeatureGrid() {
         {features.map((feature) => (
           <div key={feature.title} className="glass rounded-[1.75rem] p-6">
             <h3 className="text-lg font-semibold">{feature.title}</h3>
-            <p className="mt-3 text-sm leading-7 text-slate-300">{feature.description}</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">{feature.description}</p>
           </div>
         ))}
       </div>
