@@ -51,6 +51,7 @@ model User {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   resetOtps     PasswordResetOtp[]
+  resetTokens   PasswordResetToken[]
 }
 
 model PasswordResetOtp {
@@ -62,6 +63,18 @@ model PasswordResetOtp {
   attempts    Int       @default(0)
   createdAt   DateTime  @default(now())
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }

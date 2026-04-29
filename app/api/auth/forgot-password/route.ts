@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { generateOtpCode, hashOtpCode } from "@/lib/otp";
 import { sendResetOtpEmail } from "@/lib/mailer";
 
+export const runtime = "nodejs";
+
 const schema = z.object({
   email: z.string().email()
 });
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
     const codeHash = hashOtpCode(otp);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await prisma.passwordResetOtp.create({
+    const record = await prisma.passwordResetOtp.create({
       data: {
         userId: user.id,
         codeHash,
@@ -50,16 +52,18 @@ export async function POST(request: Request) {
     const mailResult = await sendResetOtpEmail(email, otp);
 
     if (!mailResult.success) {
+      await prisma.passwordResetOtp.delete({ where: { id: record.id } });
+
       if (process.env.NODE_ENV !== "production") {
         return NextResponse.json({
           success: true,
-          message: "SMTP is not configured. Development OTP generated.",
+          message: "Email delivery is unavailable. Development OTP generated.",
           otp
         });
       }
 
       return NextResponse.json(
-        { error: "Email service is not configured." },
+        { error: "Email service failed to send OTP." },
         { status: 500 }
       );
     }

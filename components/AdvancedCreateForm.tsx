@@ -118,7 +118,7 @@ function makeDefaultBook(title: string, pageCount: 4 | 6 | 8): BookData {
         layoutId,
         slots: Array.from(
           { length: slotCountFromLayout(layoutId) },
-          () => null
+          () => null,
         ),
       };
     }),
@@ -407,7 +407,7 @@ export function AdvancedCreateForm() {
               url: result.url,
               poster: result.poster,
             }
-          : slot
+          : slot,
       ),
     };
 
@@ -538,11 +538,13 @@ export function AdvancedCreateForm() {
               ? []
               : scene.book?.pages.flatMap((page, pageIndex) =>
                   page.slots
-                    .filter((slot): slot is NonNullable<typeof slot> => Boolean(slot?.url))
+                    .filter((slot): slot is NonNullable<typeof slot> =>
+                      Boolean(slot?.url),
+                    )
                     .map((slot, slotIndex) => ({
                       imageUrl: slot.url,
                       altText: `${scene.name}-album-page-${pageIndex + 1}-slot-${slotIndex + 1}`,
-                    }))
+                    })),
                 ) || []),
           ]),
           layoutJson: {
@@ -779,12 +781,12 @@ export function AdvancedCreateForm() {
             />
           </div>
 
-          <div className="space-y-4 rounded-[1.75rem] border border-sky-300/80 bg-sky-100/90 p-4">
+          <div className="space-y-4 rounded-[1.75rem] border border-sky-300 bg-white/70 p-4 shadow-sm backdrop-blur">
             <h2 className="text-lg font-bold">Editor tools</h2>
 
             {isPuzzleScene ? (
               <>
-                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 text-sm text-cyan-100">
+                <div className="rounded-2xl border border-cyan-300 bg-cyan-50 p-4 text-sm font-medium leading-7 text-cyan-950 shadow-sm">
                   Background 4 is reserved for the puzzle game. Upload one
                   image, and it will be split into 8 pieces. The player has 1
                   minute to rebuild it.
@@ -823,17 +825,17 @@ export function AdvancedCreateForm() {
               </>
             ) : isGameScene ? (
               <>
-                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+                <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-medium leading-7 text-emerald-950 shadow-sm">
                   Background 3 is reserved for the full-screen bird game. Text
                   boxes, image boxes, and albums are disabled for this scene.
                 </div>
 
-                <div className="space-y-3 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
-                  <h3 className="text-base font-bold text-yellow-100">
+                <div className="space-y-4 rounded-2xl border border-amber-300 bg-white p-5 shadow-sm">
+                  <h3 className="text-lg font-extrabold leading-8 text-slate-950">
                     Challenge: How many pipes can you pass?
                   </h3>
 
-                  <p className="text-sm text-yellow-50/90">
+                  <p className="text-sm font-semibold leading-6 text-slate-700">
                     Enter a target number of pipes for the player to pass.
                   </p>
 
@@ -846,10 +848,10 @@ export function AdvancedCreateForm() {
                       handleChallengeTargetChange(e.target.value)
                     }
                     placeholder="e.g. 30"
-                    className="w-full rounded-xl border border-sky-300 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
+                    className="w-full rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-200"
                   />
 
-                  <p className="text-xs text-yellow-50/75">
+                  <p className="text-sm font-medium leading-6 text-slate-600">
                     Example: If you enter 30, the mission is passed when the
                     score reaches 30.
                   </p>
@@ -863,8 +865,8 @@ export function AdvancedCreateForm() {
                   Upload {activeScene.name.toLowerCase()} image
                 </button>
 
-                <div className="rounded-2xl border border-sky-300/80 bg-sky-100/95 p-4">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <div className="rounded-2xl border border-sky-300 bg-white/80 p-4 shadow-sm">
+                  <label className="mb-2 block text-sm font-bold text-slate-800">
                     Animation selector
                   </label>
                   <select
@@ -872,7 +874,7 @@ export function AdvancedCreateForm() {
                     onChange={(e) =>
                       setAnimation(e.target.value as AnimationType)
                     }
-                    className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-3 text-slate-800 outline-none"
+                    className="w-full rounded-2xl border border-sky-300 bg-white p-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-200"
                   >
                     <option value="none">No animation</option>
                     <option value="falling-hearts">Falling hearts</option>
@@ -911,7 +913,7 @@ export function AdvancedCreateForm() {
                   <button
                     type="button"
                     onClick={deleteSelected}
-                    className="w-full rounded-2xl bg-red-500/20 px-4 py-3 text-left text-sm font-medium text-red-200 transition hover:bg-red-500/30"
+                    className="w-full rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-left text-sm font-bold text-rose-700 shadow-sm transition hover:bg-rose-100 hover:text-rose-800"
                   >
                     Delete selected item
                   </button>
@@ -925,8 +927,8 @@ export function AdvancedCreateForm() {
                   </button>
                 </div>
 
-                <div className="rounded-2xl border border-sky-300/80 bg-sky-100/95 p-4">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <div className="rounded-2xl border border-sky-300 bg-white/80 p-4 shadow-sm">
+                  <label className="mb-2 block text-sm font-bold text-slate-800">
                     Animation selector
                   </label>
                   <select
@@ -934,7 +936,7 @@ export function AdvancedCreateForm() {
                     onChange={(e) =>
                       setAnimation(e.target.value as AnimationType)
                     }
-                    className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-3 text-slate-800 outline-none"
+                    className="w-full rounded-2xl border border-sky-300 bg-white p-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-200"
                   >
                     <option value="none">No animation</option>
                     <option value="falling-hearts">Falling hearts</option>

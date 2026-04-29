@@ -73,7 +73,22 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 CLOUDINARY_CLOUD_NAME="your-cloud-name"
 CLOUDINARY_API_KEY="your-cloudinary-api-key"
 CLOUDINARY_API_SECRET="your-cloudinary-api-secret"
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="465"
+SMTP_USER="your-gmail-address@gmail.com"
+SMTP_PASS="your-gmail-app-password"
+SMTP_FROM="LoveLink Studio <your-gmail-address@gmail.com>"
 ```
+
+### 4a. Gmail OTP email setup
+If you want OTP codes to arrive in email, use a Gmail account with an App Password:
+
+1. Turn on 2-Step Verification in Google Account.
+2. Create an App Password for Mail.
+3. Put that 16-character app password into `SMTP_PASS`.
+4. Keep `SMTP_HOST` as `smtp.gmail.com` and `SMTP_PORT` as `465`.
+
+If these SMTP values are missing in development, the login page will still show a DEV OTP preview so you can test the flow locally.
 
 ### 5. Setup PostgreSQL database
 Create the database:

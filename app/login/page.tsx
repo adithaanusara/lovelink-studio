@@ -8,25 +8,35 @@ import {
   isLoggedIn,
   loginAccount,
   requestForgotPasswordOtp,
+  resetForgotPassword,
   verifyForgotPasswordOtp
 } from "@/lib/auth-client";
+
+type ForgotStep = "email" | "otp" | "password";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotStep, setForgotStep] = useState<ForgotStep>("email");
+
   const [otpEmail, setOtpEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [otpMessage, setOtpMessage] = useState("");
   const [devOtpPreview, setDevOtpPreview] = useState("");
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const nextPath = searchParams.get("next") || "/create";
 
@@ -36,12 +46,25 @@ export default function LoginPage() {
     }
   }, [nextPath, router]);
 
+  const resetForgotState = () => {
+    setForgotStep("email");
+    setOtpCode("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setOtpError("");
+    setOtpMessage("");
+    setDevOtpPreview("");
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     setError("");
+    setSuccessMessage("");
     setIsSubmitting(true);
 
     const result = await loginAccount(email, password);
+
     if (!result.success) {
       setError(result.message);
       setIsSubmitting(false);
@@ -55,9 +78,11 @@ export default function LoginPage() {
     setOtpError("");
     setOtpMessage("");
     setDevOtpPreview("");
+    setSuccessMessage("");
     setOtpLoading(true);
 
-    const result = await requestForgotPasswordOtp(otpEmail || email);
+    const targetEmail = otpEmail || email;
+    const result = await requestForgotPasswordOtp(targetEmail);
 
     if (!result.success) {
       setOtpError(result.message);
@@ -65,17 +90,21 @@ export default function LoginPage() {
       return;
     }
 
-    setOtpSent(true);
+    setOtpEmail(targetEmail.trim().toLowerCase());
+    setForgotStep("otp");
     setOtpMessage(result.message);
+
     if (result.otp) {
       setDevOtpPreview(result.otp);
     }
+
     setOtpLoading(false);
   };
 
   const handleVerifyOtp = async () => {
     setOtpError("");
     setOtpMessage("");
+    setSuccessMessage("");
     setOtpLoading(true);
 
     const result = await verifyForgotPasswordOtp(otpEmail || email, otpCode);
@@ -86,7 +115,36 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(nextPath);
+    setForgotStep("password");
+    setOtpMessage("OTP verified. Now create your new password.");
+    setOtpLoading(false);
+  };
+
+  const handleResetPassword = async () => {
+    setOtpError("");
+    setOtpMessage("");
+    setSuccessMessage("");
+    setOtpLoading(true);
+
+    const result = await resetForgotPassword(
+      otpEmail || email,
+      otpCode,
+      newPassword,
+      confirmPassword
+    );
+
+    if (!result.success) {
+      setOtpError(result.message);
+      setOtpLoading(false);
+      return;
+    }
+
+    setEmail((otpEmail || email).trim().toLowerCase());
+    setPassword("");
+    setShowForgotPassword(false);
+    resetForgotState();
+    setSuccessMessage(result.message);
+    setOtpLoading(false);
   };
 
   return (
@@ -100,9 +158,12 @@ export default function LoginPage() {
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white">
               <Heart className="h-5 w-5" />
             </div>
+
             <div>
               <p className="font-semibold">LoveLink Studio</p>
-              <p className="text-xs text-slate-600">Welcome back to your love stories</p>
+              <p className="text-xs text-slate-600">
+                Welcome back to your love stories
+              </p>
             </div>
           </Link>
 
@@ -135,15 +196,23 @@ export default function LoginPage() {
             </p>
 
             <div className="mt-8 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
-              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">Private links</div>
-              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">Animated pages</div>
-              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">Albums + games</div>
+              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">
+                Private links
+              </div>
+              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">
+                Animated pages
+              </div>
+              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">
+                Albums + games
+              </div>
             </div>
           </div>
 
           <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/95 p-7 shadow-[0_20px_70px_rgba(59,130,246,0.2)]">
             <h2 className="text-2xl font-bold">Login</h2>
-            <p className="mt-2 text-sm text-slate-600">Use your email and password to access your dashboard.</p>
+            <p className="mt-2 text-sm text-slate-600">
+              Use your email and password to access your dashboard.
+            </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <label className="grid gap-2">
@@ -161,7 +230,9 @@ export default function LoginPage() {
               </label>
 
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-slate-700">Password</span>
+                <span className="text-sm font-medium text-slate-700">
+                  Password
+                </span>
                 <div className="flex items-center gap-2 rounded-2xl border border-sky-400/70 bg-sky-100/95 px-3">
                   <Lock className="h-4 w-4 text-slate-500" />
                   <input
@@ -174,12 +245,20 @@ export default function LoginPage() {
                 </div>
               </label>
 
-              {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
+              {successMessage ? (
+                <p className="text-sm font-medium text-emerald-700">
+                  {successMessage}
+                </p>
+              ) : null}
+
+              {error ? (
+                <p className="text-sm font-medium text-rose-600">{error}</p>
+              ) : null}
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 px-5 py-3 font-semibold text-white transition hover:scale-[1.01]"
+                className="w-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 px-5 py-3 font-semibold text-white transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSubmitting ? "Logging in..." : "Login to LoveLink"}
               </button>
@@ -187,10 +266,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowForgotPassword((prev) => !prev);
-                  setOtpEmail(email);
-                  setOtpError("");
-                  setOtpMessage("");
+                  setShowForgotPassword((prev) => {
+                    const nextValue = !prev;
+                    if (nextValue) {
+                      setOtpEmail(email);
+                    }
+                    return nextValue;
+                  });
+                  resetForgotState();
                 }}
                 className="w-full text-sm font-semibold text-sky-700 hover:text-sky-900"
               >
@@ -200,31 +283,44 @@ export default function LoginPage() {
 
             {showForgotPassword ? (
               <div className="mt-5 space-y-3 rounded-2xl border border-sky-400/70 bg-sky-100/95 p-4">
-                <p className="text-sm font-semibold text-slate-800">
-                  Reset with OTP
-                </p>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    Reset password with OTP
+                  </p>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Step{" "}
+                    {forgotStep === "email"
+                      ? "1 of 3"
+                      : forgotStep === "otp"
+                        ? "2 of 3"
+                        : "3 of 3"}
+                  </p>
+                </div>
 
                 <div className="grid gap-2">
                   <span className="text-sm text-slate-700">Email</span>
                   <input
                     type="email"
                     value={otpEmail}
+                    disabled={forgotStep !== "email"}
                     onChange={(event) => setOtpEmail(event.target.value)}
                     placeholder="you@example.com"
-                    className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
+                    className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none disabled:cursor-not-allowed disabled:opacity-70"
                   />
                 </div>
 
-                <button
-                  type="button"
-                  disabled={otpLoading}
-                  onClick={() => void handleRequestOtp()}
-                  className="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-600"
-                >
-                  {otpLoading ? "Sending OTP..." : "Send OTP to email"}
-                </button>
+                {forgotStep === "email" ? (
+                  <button
+                    type="button"
+                    disabled={otpLoading}
+                    onClick={() => void handleRequestOtp()}
+                    className="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {otpLoading ? "Sending OTP..." : "Send OTP to email"}
+                  </button>
+                ) : null}
 
-                {otpSent ? (
+                {forgotStep === "otp" ? (
                   <>
                     <div className="grid gap-2">
                       <span className="text-sm text-slate-700">Enter OTP</span>
@@ -233,7 +329,9 @@ export default function LoginPage() {
                         maxLength={6}
                         value={otpCode}
                         onChange={(event) =>
-                          setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                          setOtpCode(
+                            event.target.value.replace(/\D/g, "").slice(0, 6)
+                          )
                         }
                         placeholder="6-digit OTP"
                         className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
@@ -244,26 +342,87 @@ export default function LoginPage() {
                       type="button"
                       disabled={otpLoading}
                       onClick={() => void handleVerifyOtp()}
-                      className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-700"
+                      className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {otpLoading ? "Verifying..." : "Verify OTP and Login"}
+                      {otpLoading ? "Verifying..." : "Verify OTP"}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={otpLoading}
+                      onClick={() => void handleRequestOtp()}
+                      className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-4 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-200 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      Resend OTP
                     </button>
                   </>
                 ) : null}
 
-                {otpMessage ? <p className="text-sm text-emerald-700">{otpMessage}</p> : null}
+                {forgotStep === "password" ? (
+                  <>
+                    <div className="grid gap-2">
+                      <span className="text-sm text-slate-700">
+                        Create New Password
+                      </span>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        placeholder="New password"
+                        className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <span className="text-sm text-slate-700">
+                        Confirm Password
+                      </span>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(event) =>
+                          setConfirmPassword(event.target.value)
+                        }
+                        placeholder="Confirm password"
+                        className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={otpLoading}
+                      onClick={() => void handleResetPassword()}
+                      className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {otpLoading ? "Updating password..." : "Update Password"}
+                    </button>
+                  </>
+                ) : null}
+
+                {otpMessage ? (
+                  <p className="text-sm text-emerald-700">{otpMessage}</p>
+                ) : null}
+
                 {devOtpPreview ? (
                   <p className="text-xs font-semibold tracking-[0.14em] text-violet-700">
                     DEV OTP: {devOtpPreview}
                   </p>
                 ) : null}
-                {otpError ? <p className="text-sm font-medium text-rose-600">{otpError}</p> : null}
+
+                {otpError ? (
+                  <p className="text-sm font-medium text-rose-600">
+                    {otpError}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
             <p className="mt-4 text-center text-sm text-slate-700">
               New here?{" "}
-              <Link href="/signup" className="font-semibold text-violet-700 hover:underline">
+              <Link
+                href="/signup"
+                className="font-semibold text-violet-700 hover:underline"
+              >
                 Create an account
               </Link>
             </p>

@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashOtpCode } from "@/lib/otp";
+import { hashPassword } from "@/lib/password";
 
 export const runtime = "nodejs";
 
 const schema = z.object({
   email: z.string().email(),
-  otp: z.string().regex(/^\d{6}$/)
+  otp: z.string().regex(/^\d{6}$/),
+  newPassword: z.string().min(6),
+  confirmPassword: z.string().min(6)
 });
 
 export async function POST(request: Request) {
@@ -24,6 +27,15 @@ export async function POST(request: Request) {
 
     const email = parsed.data.email.trim().toLowerCase();
     const otp = parsed.data.otp.trim();
+    const newPassword = parsed.data.newPassword;
+    const confirmPassword = parsed.data.confirmPassword;
+
+    if (newPassword !== confirmPassword) {
+      return NextResponse.json(
+        { error: "Passwords do not match." },
+        { status: 400 }
+      );
+    }
 
     const user = await prisma.user.findUnique({
       where: { email }
@@ -95,18 +107,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Important:
-    // මෙතන consumedAt update කරන්න එපා.
-    // Password reset route එකේදී තමයි OTP එක consume කරන්නේ.
+    const passwordHash = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash }
+    });
+
+    await prisma.passwordResetOtp.updateMany({
+      where: {
+        userId: user.id,
+        consumedAt: null
+      },
+      data: {
+        consumedAt: new Date()
+      }
+    });
+
     return NextResponse.json({
       success: true,
-      message: "OTP verified successfully."
+      message: "Password reset successfully. Please login with your new password."
     });
   } catch (error) {
-    console.error("VERIFY_OTP_ERROR", error);
+    console.error("RESET_PASSWORD_ERROR", error);
 
     return NextResponse.json(
-      { error: "OTP verification failed" },
+      { error: "Password reset failed" },
       { status: 500 }
     );
   }

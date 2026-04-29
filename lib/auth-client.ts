@@ -102,6 +102,7 @@ export async function loginAccount(
 
 export async function requestForgotPasswordOtp(email: string) {
   const cleanEmail = normalizeEmail(email);
+
   if (!cleanEmail) {
     return { success: false as const, message: "Please enter your email." };
   }
@@ -142,6 +143,60 @@ export async function verifyForgotPasswordOtp(email: string, otp: string) {
     return { success: false as const, message: response.message };
   }
 
-  setSession(cleanEmail);
+  // Important:
+  // Forgot password OTP verify වෙද්දි login session set කරන්න එපා.
+  // Password reset කළාට පස්සේ user manually login වෙන්න ඕන.
   return { success: true as const };
+}
+
+export async function resetForgotPassword(
+  email: string,
+  otp: string,
+  newPassword: string,
+  confirmPassword: string
+) {
+  const cleanEmail = normalizeEmail(email);
+  const cleanOtp = otp.trim();
+  const cleanPassword = newPassword.trim();
+  const cleanConfirmPassword = confirmPassword.trim();
+
+  if (!cleanEmail || !cleanOtp || !cleanPassword || !cleanConfirmPassword) {
+    return {
+      success: false as const,
+      message: "Please fill all fields."
+    };
+  }
+
+  if (cleanPassword.length < 6) {
+    return {
+      success: false as const,
+      message: "Password must be at least 6 characters."
+    };
+  }
+
+  if (cleanPassword !== cleanConfirmPassword) {
+    return {
+      success: false as const,
+      message: "Passwords do not match."
+    };
+  }
+
+  const response = await requestJson<{ success: true; message?: string }>(
+    "/api/auth/reset-password",
+    {
+      email: cleanEmail,
+      otp: cleanOtp,
+      newPassword: cleanPassword,
+      confirmPassword: cleanConfirmPassword
+    }
+  );
+
+  if (!response.ok) {
+    return { success: false as const, message: response.message };
+  }
+
+  return {
+    success: true as const,
+    message: response.data.message || "Password reset successfully."
+  };
 }
