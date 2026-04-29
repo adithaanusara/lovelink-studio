@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthTiltCard } from "@/components/AuthTiltCard";
 import { isLoggedIn, signupAccount } from "@/lib/auth-client";
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -112,5 +112,21 @@ export default function SignupPage() {
         </Link>
       </p>
     </AuthTiltCard>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-sky-100 text-slate-900">
+          <div className="rounded-3xl border border-sky-200 bg-white px-8 py-6 text-center shadow-sm">
+            <p className="text-sm font-bold">Loading signup page...</p>
+          </div>
+        </main>
+      }
+    >
+      <SignupContent />
+    </Suspense>
   );
 }

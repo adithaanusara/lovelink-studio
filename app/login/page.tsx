@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthTiltCard } from "@/components/AuthTiltCard";
 import {
@@ -14,7 +14,7 @@ import {
 
 type ForgotStep = "email" | "otp" | "password";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -400,5 +400,21 @@ export default function LoginPage() {
         </div>
       ) : null}
     </AuthTiltCard>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-sky-100 text-slate-900">
+          <div className="rounded-3xl border border-sky-200 bg-white px-8 py-6 text-center shadow-sm">
+            <p className="text-sm font-bold">Loading login page...</p>
+          </div>
+        </main>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
