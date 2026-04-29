@@ -1,10 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, Sparkles, ArrowRight } from "lucide-react";
+import { isLoggedIn } from "@/lib/auth-client";
 
 export function Hero() {
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setLoggedIn(isLoggedIn());
+  }, []);
+
+  const startCreatingHref = loggedIn ? "/create" : "/login?next=/create";
+
   return (
     <section className="relative min-h-screen overflow-hidden bg-sky-200 text-slate-900">
       <video
@@ -33,14 +43,14 @@ export function Hero() {
             transition={{ duration: 0.8 }}
             className="max-w-3xl"
           >
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-sky-400/80 bg-sky-100/90 px-4 py-2 text-sm text-sky-900 backdrop-blur-md">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-sky-400/80 bg-sky-100/90 px-4 py-2 text-sm font-semibold text-sky-900 backdrop-blur-md">
               <Sparkles className="h-4 w-4" />
               Cinematic animated surprise pages
             </div>
 
             <h1 className="max-w-4xl text-5xl font-black leading-[0.95] tracking-tight md:text-7xl xl:text-8xl">
               Turn your{" "}
-              <span className="bg-gradient-to-r from-pink-300 via-fuchsia-300 to-violet-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 bg-clip-text text-transparent">
                 love story
               </span>{" "}
               into an immersive digital memory.
@@ -54,30 +64,16 @@ export function Hero() {
 
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
-                href="/create"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 px-7 py-4 text-base font-semibold text-white shadow-[0_20px_80px_rgba(217,70,239,0.35)] transition hover:scale-[1.02]"
+                href={startCreatingHref}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 px-7 py-4 text-base font-bold text-white shadow-[0_20px_80px_rgba(217,70,239,0.35)] transition hover:scale-[1.02]"
               >
                 Start creating
                 <ArrowRight className="h-4 w-4" />
               </Link>
 
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-full border border-sky-500/60 bg-sky-100/95 px-7 py-4 text-base font-semibold text-slate-800 backdrop-blur-md transition hover:bg-sky-200"
-              >
-                Login
-              </Link>
-
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 rounded-full border border-violet-300/70 bg-violet-100/80 px-7 py-4 text-base font-semibold text-violet-700 backdrop-blur-md transition hover:bg-violet-200/80"
-              >
-                Sign Up
-              </Link>
-
               <a
                 href="#features"
-                className="inline-flex items-center gap-2 rounded-full border border-sky-500/60 bg-sky-100/95 px-7 py-4 text-base font-semibold text-slate-800 backdrop-blur-md transition hover:bg-sky-200"
+                className="inline-flex items-center gap-2 rounded-full border border-sky-500 bg-sky-50 px-7 py-4 text-base font-bold text-slate-800 shadow-sm backdrop-blur-md transition hover:bg-sky-100"
               >
                 See features
               </a>

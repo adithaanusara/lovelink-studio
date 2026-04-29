@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Heart, Lock, Mail, Sparkles } from "lucide-react";
+import { AuthTiltCard } from "@/components/AuthTiltCard";
 import {
   isLoggedIn,
   loginAccount,
@@ -148,287 +148,257 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-sky-100 px-4 py-10 text-slate-900">
-      <div className="pointer-events-none absolute -left-16 top-16 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-pink-200/40 blur-3xl" />
+    <AuthTiltCard
+  mode="login"
+  title="Welcome Back"
+  subtitle="Enter your email and password to access your account"
+  imageTitle="EXPLORE. LOVE. CREATE."
+  imageSubtitle="Continue building your romantic memory pages with cinematic animations."
+>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <label className="grid gap-2">
+          <span className="text-sm font-bold text-slate-800">Email</span>
 
-      <div className="relative mx-auto w-full max-w-[1120px]">
-        <div className="mb-6 flex items-center justify-between rounded-3xl border border-sky-400/80 bg-sky-100/90 px-5 py-4 backdrop-blur-xl">
-          <Link href="/" className="inline-flex items-center gap-3 text-slate-800">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white">
-              <Heart className="h-5 w-5" />
-            </div>
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+          />
+        </label>
 
-            <div>
-              <p className="font-semibold">LoveLink Studio</p>
-              <p className="text-xs text-slate-600">
-                Welcome back to your love stories
-              </p>
-            </div>
-          </Link>
+        <label className="grid gap-2">
+          <span className="text-sm font-bold text-slate-800">Password</span>
 
-          <Link
-            href="/signup"
-            className="rounded-full border border-violet-300/70 bg-violet-100/80 px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-200/80"
+          <input
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+          />
+        </label>
+
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <label className="flex items-center gap-2 font-medium text-slate-600">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 accent-slate-950"
+            />
+            Remember me
+          </label>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowForgotPassword(true);
+              setOtpEmail(email);
+              resetForgotState();
+            }}
+            className="font-bold text-slate-900 transition hover:text-violet-700"
           >
-            Create account
-          </Link>
+            Forgot Password
+          </button>
         </div>
 
-        <section className="grid items-stretch gap-5 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/90 p-7 backdrop-blur-xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.26em] text-sky-700">
-              <Sparkles className="h-3.5 w-3.5" />
-              For Couples
-            </div>
+        {successMessage ? (
+          <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+            {successMessage}
+          </p>
+        ) : null}
 
-            <h1 className="mt-5 text-4xl font-black leading-tight md:text-5xl">
-              Continue where your
-              <span className="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 bg-clip-text text-transparent">
-                {" "}
-                memories paused
-              </span>
-            </h1>
+        {error ? (
+          <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
+            {error}
+          </p>
+        ) : null}
 
-            <p className="mt-4 max-w-xl text-base leading-7 text-slate-700 md:text-lg">
-              Sign in to edit your surprise pages, update photos, and keep every
-              special moment ready to share.
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:scale-[1.01] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSubmitting ? "Signing in..." : "Sign in"}
+        </button>
+      </form>
+
+      <button
+        type="button"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+      >
+        <span className="text-lg font-black">G</span>
+        Sign in with Google
+      </button>
+
+      <p className="mt-6 text-center text-sm font-medium text-slate-500">
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/signup"
+          className="font-black text-slate-950 transition hover:text-violet-700"
+        >
+          Sign up
+        </Link>
+      </p>
+
+      {showForgotPassword ? (
+        <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
+          <div className="mb-4">
+            <p className="text-sm font-black text-slate-900">
+              Reset password with OTP
             </p>
 
-            <div className="mt-8 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
-              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">
-                Private links
-              </div>
-              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">
-                Animated pages
-              </div>
-              <div className="rounded-2xl border border-sky-300/80 bg-sky-100/80 px-4 py-3">
-                Albums + games
-              </div>
-            </div>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Step{" "}
+              {forgotStep === "email"
+                ? "1 of 3"
+                : forgotStep === "otp"
+                  ? "2 of 3"
+                  : "3 of 3"}
+            </p>
           </div>
 
-          <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/95 p-7 shadow-[0_20px_70px_rgba(59,130,246,0.2)]">
-            <h2 className="text-2xl font-bold">Login</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Use your email and password to access your dashboard.
-            </p>
+          <div className="space-y-3">
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-slate-800">Email</span>
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <label className="grid gap-2">
-                <span className="text-sm font-medium text-slate-700">Email</span>
-                <div className="flex items-center gap-2 rounded-2xl border border-sky-400/70 bg-sky-100/95 px-3">
-                  <Mail className="h-4 w-4 text-slate-500" />
-                  <input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="w-full bg-transparent py-3 text-slate-800 outline-none"
-                  />
-                </div>
-              </label>
+              <input
+                type="email"
+                value={otpEmail}
+                disabled={forgotStep !== "email"}
+                onChange={(event) => setOtpEmail(event.target.value)}
+                placeholder="Enter your email"
+                className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+              />
+            </label>
 
-              <label className="grid gap-2">
-                <span className="text-sm font-medium text-slate-700">
-                  Password
-                </span>
-                <div className="flex items-center gap-2 rounded-2xl border border-sky-400/70 bg-sky-100/95 px-3">
-                  <Lock className="h-4 w-4 text-slate-500" />
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="w-full bg-transparent py-3 text-slate-800 outline-none"
-                  />
-                </div>
-              </label>
-
-              {successMessage ? (
-                <p className="text-sm font-medium text-emerald-700">
-                  {successMessage}
-                </p>
-              ) : null}
-
-              {error ? (
-                <p className="text-sm font-medium text-rose-600">{error}</p>
-              ) : null}
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-600 px-5 py-3 font-semibold text-white transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? "Logging in..." : "Login to LoveLink"}
-              </button>
-
+            {forgotStep === "email" ? (
               <button
                 type="button"
-                onClick={() => {
-                  setShowForgotPassword((prev) => {
-                    const nextValue = !prev;
-                    if (nextValue) {
-                      setOtpEmail(email);
-                    }
-                    return nextValue;
-                  });
-                  resetForgotState();
-                }}
-                className="w-full text-sm font-semibold text-sky-700 hover:text-sky-900"
+                disabled={otpLoading}
+                onClick={() => void handleRequestOtp()}
+                className="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Forgot password?
+                {otpLoading ? "Sending OTP..." : "Send OTP to email"}
               </button>
-            </form>
-
-            {showForgotPassword ? (
-              <div className="mt-5 space-y-3 rounded-2xl border border-sky-400/70 bg-sky-100/95 p-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">
-                    Reset password with OTP
-                  </p>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Step{" "}
-                    {forgotStep === "email"
-                      ? "1 of 3"
-                      : forgotStep === "otp"
-                        ? "2 of 3"
-                        : "3 of 3"}
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <span className="text-sm text-slate-700">Email</span>
-                  <input
-                    type="email"
-                    value={otpEmail}
-                    disabled={forgotStep !== "email"}
-                    onChange={(event) => setOtpEmail(event.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none disabled:cursor-not-allowed disabled:opacity-70"
-                  />
-                </div>
-
-                {forgotStep === "email" ? (
-                  <button
-                    type="button"
-                    disabled={otpLoading}
-                    onClick={() => void handleRequestOtp()}
-                    className="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {otpLoading ? "Sending OTP..." : "Send OTP to email"}
-                  </button>
-                ) : null}
-
-                {forgotStep === "otp" ? (
-                  <>
-                    <div className="grid gap-2">
-                      <span className="text-sm text-slate-700">Enter OTP</span>
-                      <input
-                        type="text"
-                        maxLength={6}
-                        value={otpCode}
-                        onChange={(event) =>
-                          setOtpCode(
-                            event.target.value.replace(/\D/g, "").slice(0, 6)
-                          )
-                        }
-                        placeholder="6-digit OTP"
-                        className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={otpLoading}
-                      onClick={() => void handleVerifyOtp()}
-                      className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {otpLoading ? "Verifying..." : "Verify OTP"}
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={otpLoading}
-                      onClick={() => void handleRequestOtp()}
-                      className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-4 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-200 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      Resend OTP
-                    </button>
-                  </>
-                ) : null}
-
-                {forgotStep === "password" ? (
-                  <>
-                    <div className="grid gap-2">
-                      <span className="text-sm text-slate-700">
-                        Create New Password
-                      </span>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(event) => setNewPassword(event.target.value)}
-                        placeholder="New password"
-                        className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <span className="text-sm text-slate-700">
-                        Confirm Password
-                      </span>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(event) =>
-                          setConfirmPassword(event.target.value)
-                        }
-                        placeholder="Confirm password"
-                        className="w-full rounded-xl border border-sky-400/70 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={otpLoading}
-                      onClick={() => void handleResetPassword()}
-                      className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {otpLoading ? "Updating password..." : "Update Password"}
-                    </button>
-                  </>
-                ) : null}
-
-                {otpMessage ? (
-                  <p className="text-sm text-emerald-700">{otpMessage}</p>
-                ) : null}
-
-                {devOtpPreview ? (
-                  <p className="text-xs font-semibold tracking-[0.14em] text-violet-700">
-                    DEV OTP: {devOtpPreview}
-                  </p>
-                ) : null}
-
-                {otpError ? (
-                  <p className="text-sm font-medium text-rose-600">
-                    {otpError}
-                  </p>
-                ) : null}
-              </div>
             ) : null}
 
-            <p className="mt-4 text-center text-sm text-slate-700">
-              New here?{" "}
-              <Link
-                href="/signup"
-                className="font-semibold text-violet-700 hover:underline"
-              >
-                Create an account
-              </Link>
-            </p>
+            {forgotStep === "otp" ? (
+              <>
+                <label className="grid gap-2">
+                  <span className="text-sm font-bold text-slate-800">
+                    Enter OTP
+                  </span>
+
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(event) =>
+                      setOtpCode(
+                        event.target.value.replace(/\D/g, "").slice(0, 6)
+                      )
+                    }
+                    placeholder="6-digit OTP"
+                    className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold tracking-[0.25em] text-slate-950 outline-none transition placeholder:tracking-normal placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  disabled={otpLoading}
+                  onClick={() => void handleVerifyOtp()}
+                  className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {otpLoading ? "Verifying..." : "Verify OTP"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={otpLoading}
+                  onClick={() => void handleRequestOtp()}
+                  className="w-full rounded-xl border border-sky-300 bg-white px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Resend OTP
+                </button>
+              </>
+            ) : null}
+
+            {forgotStep === "password" ? (
+              <>
+                <label className="grid gap-2">
+                  <span className="text-sm font-bold text-slate-800">
+                    Create New Password
+                  </span>
+
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="Create new password"
+                    className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                  />
+                </label>
+
+                <label className="grid gap-2">
+                  <span className="text-sm font-bold text-slate-800">
+                    Confirm Password
+                  </span>
+
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) =>
+                      setConfirmPassword(event.target.value)
+                    }
+                    placeholder="Confirm new password"
+                    className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  disabled={otpLoading}
+                  onClick={() => void handleResetPassword()}
+                  className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {otpLoading ? "Updating password..." : "Update Password"}
+                </button>
+              </>
+            ) : null}
+
+            {otpMessage ? (
+              <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                {otpMessage}
+              </p>
+            ) : null}
+
+            {devOtpPreview ? (
+              <p className="rounded-xl bg-violet-50 px-4 py-3 text-xs font-black tracking-[0.2em] text-violet-700">
+                DEV OTP: {devOtpPreview}
+              </p>
+            ) : null}
+
+            {otpError ? (
+              <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
+                {otpError}
+              </p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowForgotPassword(false);
+                resetForgotState();
+              }}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              Back to login
+            </button>
           </div>
-        </section>
-      </div>
-    </main>
+        </div>
+      ) : null}
+    </AuthTiltCard>
+    
   );
 }
