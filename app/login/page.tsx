@@ -9,7 +9,7 @@ import {
   loginAccount,
   requestForgotPasswordOtp,
   resetForgotPassword,
-  verifyForgotPasswordOtp
+  verifyForgotPasswordOtp,
 } from "@/lib/auth-client";
 
 type ForgotStep = "email" | "otp" | "password";
@@ -130,7 +130,7 @@ export default function LoginPage() {
       otpEmail || email,
       otpCode,
       newPassword,
-      confirmPassword
+      confirmPassword,
     );
 
     if (!result.success) {
@@ -149,12 +149,12 @@ export default function LoginPage() {
 
   return (
     <AuthTiltCard
-  mode="login"
-  title="Welcome Back"
-  subtitle="Enter your email and password to access your account"
-  imageTitle="EXPLORE. LOVE. CREATE."
-  imageSubtitle="Continue building your romantic memory pages with cinematic animations."
->
+      mode="login"
+      title="Welcome Back"
+      subtitle="Enter your email and password to access your account"
+      imageTitle="EXPLORE. LOVE. CREATE."
+      imageSubtitle="Continue building your romantic memory pages with cinematic animations."
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="grid gap-2">
           <span className="text-sm font-bold text-slate-800">Email</span>
@@ -225,6 +225,9 @@ export default function LoginPage() {
 
       <button
         type="button"
+        onClick={() => {
+          window.location.href = "/api/auth/signin/google?callbackUrl=/create";
+        }}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
       >
         <span className="text-lg font-black">G</span>
@@ -296,7 +299,7 @@ export default function LoginPage() {
                     value={otpCode}
                     onChange={(event) =>
                       setOtpCode(
-                        event.target.value.replace(/\D/g, "").slice(0, 6)
+                        event.target.value.replace(/\D/g, "").slice(0, 6),
                       )
                     }
                     placeholder="6-digit OTP"
@@ -348,9 +351,7 @@ export default function LoginPage() {
                   <input
                     type="password"
                     value={confirmPassword}
-                    onChange={(event) =>
-                      setConfirmPassword(event.target.value)
-                    }
+                    onChange={(event) => setConfirmPassword(event.target.value)}
                     placeholder="Confirm new password"
                     className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                   />
@@ -399,6 +400,5 @@ export default function LoginPage() {
         </div>
       ) : null}
     </AuthTiltCard>
-    
   );
 }
