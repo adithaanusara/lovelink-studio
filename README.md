@@ -1,289 +1,100 @@
-# LoveLink Studio
+# LoveLink Studio | Digital Memory Page Creator
 
-LoveLink Studio is a premium web app for creating beautiful personalized surprise pages with photos, emotional text, animations, and a shareable public URL.
+LoveLink Studio is a full-stack web application that allows users to create personalized digital memory pages with photos, videos, messages, animations, interactive scenes, and private shareable links.
 
-## Core idea
-Users can:
-- upload photos,
-- write a custom message,
-- choose a visual theme,
-- publish the page,
-- send the generated URL to someone special.
+This project was built to practice real-world full-stack web development, authentication, database handling, cloud image uploads, OTP email verification, responsive UI design, and production deployment.
 
-When the recipient opens the link, they see a stunning surprise page designed with motion, imagery, and heartfelt content.
+## Live Demo
 
----
+🔗 [View Live Demo](https://lovelink-studio.vercel.app)
 
-## Tech stack
-- **Frontend:** Next.js 15, React 19, Tailwind CSS
-- **Animations:** Framer Motion
-- **Database:** PostgreSQL
-- **ORM:** Prisma
-- **Image hosting:** Cloudinary
-- **Deployment:** Vercel
+## GitHub Repository
 
----
+💻 [View Source Code](https://github.com/adithaanusara/lovelink-studio)
 
-## Recommended GitHub repository setup
-Create a repository named:
+## Key Features
 
-```bash
-lovelink-studio
-```
+- Email and password authentication
+- Forgot password flow with email OTP verification
+- Personalized digital memory page creation
+- Photo and background image uploads
+- Animated scenes and interactive UI
+- Private shareable memory page links
+- Responsive modern interface
+- Cloud image upload support with Cloudinary
+- PostgreSQL database integration with Prisma
+- Public deployment with Vercel
 
-### Industry-level branch strategy
-- `main` → production-ready branch
-- `develop` → active integration branch
-- `feature/<name>` → new features
-- `fix/<name>` → bug fixes
+## Tech Stack
 
-Example:
-```bash
-git checkout -b feature/create-memory-builder
-```
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Prisma
+- PostgreSQL / Neon
+- Cloudinary
+- Nodemailer
+- Vercel
 
----
+## Project Purpose
 
-## Local setup
+The main goal of this project was to improve my practical skills in full-stack web development.
 
-### 1. Create the Next.js app folder
-This starter already contains the project code. If building manually:
+Through this project, I worked on:
 
-```bash
-npx create-next-app@latest lovelink-studio --typescript --tailwind --app
-cd lovelink-studio
-```
+- Frontend development with Next.js and React
+- Responsive UI design with Tailwind CSS
+- API routes and backend logic
+- Authentication and password reset flow
+- Email OTP verification using Nodemailer
+- Database modeling with Prisma
+- PostgreSQL database integration
+- Cloud image uploads using Cloudinary
+- Production deployment using Vercel
 
-### 2. Install dependencies
-```bash
-npm install
-```
+## Important Routes
 
-### 3. Copy environment file
-```bash
-cp .env.example .env
-```
+### Public Routes
 
-### 4. Update `.env`
-Set your values:
+- `/` - Landing page
+- `/login` - User login page
+- `/signup` - User signup page
+- `/create` - Digital memory page builder
+- `/[slug]` - Public shared memory page
 
-```env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/lovelink_studio?schema=public"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-CLOUDINARY_CLOUD_NAME="your-cloud-name"
-CLOUDINARY_API_KEY="your-cloudinary-api-key"
-CLOUDINARY_API_SECRET="your-cloudinary-api-secret"
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="465"
-SMTP_USER="your-gmail-address@gmail.com"
-SMTP_PASS="your-gmail-app-password"
-SMTP_FROM="LoveLink Studio <your-gmail-address@gmail.com>"
-```
+### API Routes
 
-### 4a. Gmail OTP email setup
-If you want OTP codes to arrive in email, use a Gmail account with an App Password:
+- `POST /api/auth/signup` - Create user account
+- `POST /api/auth/login` - User login
+- `POST /api/auth/forgot-password` - Send OTP email
+- `POST /api/auth/verify-otp` - Verify OTP
+- `POST /api/auth/reset-password` - Reset password
+- `POST /api/upload` - Upload image to Cloudinary
+- `POST /api/memories` - Create memory project
+- `GET /api/memories` - List created memory projects
 
-1. Turn on 2-Step Verification in Google Account.
-2. Create an App Password for Mail.
-3. Put that 16-character app password into `SMTP_PASS`.
-4. Keep `SMTP_HOST` as `smtp.gmail.com` and `SMTP_PORT` as `465`.
+## Database Models
 
-If these SMTP values are missing in development, the login page will still show a DEV OTP preview so you can test the flow locally.
+### User
 
-### 5. Setup PostgreSQL database
-Create the database:
+Stores registered user account details.
 
-```sql
-CREATE DATABASE lovelink_studio;
-```
+### PasswordResetOtp
 
-### 6. Run Prisma migration
-```bash
-npx prisma generate
-npx prisma migrate dev --name init
-```
+Stores OTP records for password reset verification.
 
-### 7. Start development server
-```bash
-npm run dev
-```
+### MemoryProject
 
-Open:
-```bash
-http://localhost:3000
-```
+Stores digital memory page data such as title, message, recipient, theme, media, animations, and slug.
 
----
+### GalleryImage
 
-## Database design
+Stores uploaded gallery images linked to a memory project.
 
-### `MemoryProject`
-Stores the surprise page data.
+## Installation and Setup
 
-Fields:
-- `id`
-- `slug`
-- `title`
-- `recipient`
-- `sender`
-- `occasion`
-- `message`
-- `accentText`
-- `musicUrl`
-- `eventDate`
-- `theme`
-- `coverImage`
-- `createdAt`
-- `updatedAt`
-
-### `GalleryImage`
-Stores page gallery images linked to a memory project.
-
-Fields:
-- `id`
-- `imageUrl`
-- `altText`
-- `sortOrder`
-- `projectId`
-- `createdAt`
-
----
-
-## Important routes
-
-### Public routes
-- `/` → landing page
-- `/create` → memory page builder
-- `/p/[slug]` → public surprise page
-
-### API routes
-- `POST /api/upload` → uploads image to Cloudinary
-- `POST /api/memories` → creates a memory project
-- `GET /api/memories` → lists created projects
-
----
-
-## Suggested production upgrades
-For version 2, add:
-- authentication with Clerk or NextAuth
-- dashboard for each user
-- private/unlisted pages
-- view counter analytics
-- password protected surprise pages
-- scheduled publish date
-- page templates
-- background music player
-- Stripe premium templates
-- mobile app with React Native or Flutter
-
----
-
-## How to push to GitHub
-
-### 1. Initialize git
-```bash
-git init
-```
-
-### 2. Add files
-```bash
-git add .
-git commit -m "feat: initial LoveLink Studio MVP"
-```
-
-### 3. Create GitHub repository
-Create a new repository on GitHub named `lovelink-studio`.
-
-### 4. Connect remote
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/lovelink-studio.git
-```
-
-### 5. Push code
-```bash
-git branch -M main
-git push -u origin main
-```
-
----
-
-## Suggested folder structure
+Clone the repository:
 
 ```bash
-lovelink-studio/
-├── app/
-│   ├── api/
-│   │   ├── memories/route.ts
-│   │   └── upload/route.ts
-│   ├── create/page.tsx
-│   ├── p/[slug]/page.tsx
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── CreateMemoryForm.tsx
-│   ├── FeatureGrid.tsx
-│   ├── Footer.tsx
-│   ├── Hero.tsx
-│   ├── MemoryCard.tsx
-│   └── Navbar.tsx
-├── lib/
-│   ├── cloudinary.ts
-│   ├── prisma.ts
-│   └── utils.ts
-├── prisma/
-│   └── schema.prisma
-├── public/
-├── .env.example
-├── .gitignore
-├── next.config.ts
-├── package.json
-├── postcss.config.js
-├── tailwind.config.ts
-├── tsconfig.json
-└── README.md
-```
-
----
-
-## Deployment on Vercel
-1. Push repo to GitHub
-2. Import project into Vercel
-3. Add all environment variables in Vercel project settings
-4. Use a hosted PostgreSQL database (Neon, Supabase, Railway, or Render)
-5. Use Cloudinary production credentials
-6. Redeploy
-
----
-
-## Best database option for you
-For this project, I recommend:
-- **PostgreSQL on Neon** for production
-- **Cloudinary** for image storage
-- **Vercel** for hosting
-
-This combination is modern, cheap to start, and scalable.
-
----
-
-## App conversion path later
-Since you want to build this into an app later, the best path is:
-
-1. Build the web MVP first using this repo
-2. Move shared business logic into reusable modules
-3. Build a mobile app using:
-   - React Native + Expo, or
-   - Flutter
-4. Reuse the same PostgreSQL-backed API
-
----
-
-## MVP completion checklist
-- [x] Landing page
-- [x] Create page form
-- [x] Image uploads
-- [x] PostgreSQL schema
-- [x] Shareable public page
-- [x] GitHub-ready structure
-- [x] Production-friendly stack
-
+git clone https://github.com/adithaanusara/lovelink-studio.git
