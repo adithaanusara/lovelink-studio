@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthTiltCard } from "@/components/AuthTiltCard";
@@ -226,7 +227,7 @@ function LoginContent() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = "/api/auth/signin/google?callbackUrl=/create";
+          void signIn("google", { callbackUrl: "/create" });
         }}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
       >
