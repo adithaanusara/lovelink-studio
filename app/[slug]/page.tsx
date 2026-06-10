@@ -76,7 +76,7 @@ export default async function MemoryPage({
   );
 
   return (
-    <main className="min-h-screen bg-sky-100 text-slate-900">
+    <main className="min-h-screen w-full overflow-x-hidden bg-sky-100 text-slate-900">
       {storyScenes && storyScenes.length > 0 ? (
         <StorySceneViewer scenes={storyScenes} animation={animation} />
       ) : (
@@ -113,7 +113,7 @@ export default async function MemoryPage({
                     <img
                       src={image.imageUrl}
                       alt={image.altText || "Gallery memory"}
-                      className="h-72 w-full object-cover"
+                      className="h-56 w-full object-cover sm:h-72"
                     />
                   </div>
                 ))}

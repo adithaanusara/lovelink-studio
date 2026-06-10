@@ -12,21 +12,30 @@
 
 html {
   scroll-behavior: smooth;
-}
-body {
-  padding: 0;
-  margin: 0;
+  width: 100%;
   min-height: 100%;
-  background: #dbeafe;
-  color: #0f172a;
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
 }
 
 body {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  background: #dbeafe;
+  color: #0f172a;
+  font-family: Arial, Helvetica, sans-serif;
   background-image:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.36), transparent 30%),
     radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.34), transparent 34%),
     linear-gradient(180deg, #dbeafe 0%, #bfdbfe 52%, #93c5fd 100%);
+}
+
+body,
+#__next {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 a {
@@ -43,6 +52,18 @@ select {
 button {
   font: inherit;
   cursor: pointer;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+img,
+video {
+  display: block;
 }
 
 .container {
@@ -62,4 +83,19 @@ button {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Mobile viewport fix */
+@supports (height: 100svh) {
+  .min-h-screen {
+    min-height: 100svh;
+  }
+}
+
+/* Prevent created memory pages from horizontal scrolling */
+.story-page,
+.memory-page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }

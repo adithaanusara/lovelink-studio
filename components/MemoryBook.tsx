@@ -375,7 +375,13 @@ export function MemoryBook({
         </span>
       </div>
 
-      <div className="relative" style={{ width, height: height + 12 }}>
+      <div
+  className="relative mx-auto w-full"
+  style={{
+    maxWidth: width,
+    aspectRatio: `${width} / ${height + 12}`,
+  }}
+>
         {activePage < 0 ? (
           <div
             className="relative mx-auto"

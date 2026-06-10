@@ -542,6 +542,32 @@ function SparkleHeartsLayer() {
     </div>
   );
 }
+const DESIGN_WIDTH = 1400;
+const DESIGN_HEIGHT = 900;
+
+function toXPercent(value: number) {
+  return `${(value / DESIGN_WIDTH) * 100}%`;
+}
+
+function toYPercent(value: number) {
+  return `${(value / DESIGN_HEIGHT) * 100}%`;
+}
+
+function responsiveFont(size?: number) {
+  const safeSize = size || 24;
+
+  // Desktop size eka max widiyata thiyenawa.
+  // Mobile waladi viewport width ekata adu wenawa.
+  return `clamp(16px, ${(safeSize / DESIGN_WIDTH) * 100}vw, ${safeSize}px)`;
+}
+
+function safeItemWidth(item: StorySceneItem) {
+  return `min(${toXPercent(item.w)}, calc(100% - ${toXPercent(item.x)} - 20px))`;
+}
+
+function safeBookWidth(book: BookData) {
+  return `min(${toXPercent(book.w)}, calc(100% - ${toXPercent(book.x)} - 20px))`;
+}
 
 export function StorySceneViewer({
   scenes,
@@ -620,7 +646,7 @@ export function StorySceneViewer({
 
   return (
     <section
-      className="relative mx-auto min-h-screen max-w-[1400px] overflow-hidden"
+      className="relative h-[100svh] w-full overflow-hidden"
       style={{ background: scene.background }}
     >
       <AnimatePresence mode="wait" custom={direction}>
@@ -629,9 +655,9 @@ export function StorySceneViewer({
           custom={direction}
           initial={{
             opacity: 0,
-            x: direction > 0 ? 120 : -120,
-            scale: 1.03,
-            filter: "blur(10px)",
+            x: direction > 0 ? 80 : -80,
+            scale: 1.02,
+            filter: "blur(8px)",
           }}
           animate={{
             opacity: 1,
@@ -641,18 +667,18 @@ export function StorySceneViewer({
           }}
           exit={{
             opacity: 0,
-            x: direction > 0 ? -120 : 120,
+            x: direction > 0 ? -80 : 80,
             scale: 0.985,
-            filter: "blur(10px)",
+            filter: "blur(8px)",
           }}
           transition={{
-            duration: 0.8,
+            duration: 0.65,
             ease: [0.22, 1, 0.36, 1],
           }}
           className="absolute inset-0"
         >
           <div
-            className="relative h-full min-h-screen w-full"
+            className="relative h-[100svh] w-full overflow-hidden"
             style={{ background: scene.background }}
           >
             <Romantic3DStyles />
@@ -675,7 +701,9 @@ export function StorySceneViewer({
                       alt={`${scene.name} background`}
                       className="absolute inset-0 h-full w-full object-cover"
                       style={{
-                        objectPosition: `${scene.backgroundPositionX ?? 50}% ${scene.backgroundPositionY ?? 50}%`,
+                        objectPosition: `${scene.backgroundPositionX ?? 50}% ${
+                          scene.backgroundPositionY ?? 50
+                        }%`,
                       }}
                       initial={{ scale: 1.08, opacity: 0.7 }}
                       animate={{ scale: 1, opacity: 1 }}
@@ -694,15 +722,17 @@ export function StorySceneViewer({
                   <FallingDecorLayer type="falling-petals" />
                 ) : null}
 
-                {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
+                {animation === "sparkle-hearts" ? (
+                  <SparkleHeartsLayer />
+                ) : null}
 
                 {scene.book?.enabled ? (
                   <motion.div
                     className="absolute z-[70]"
                     style={{
-                      left: scene.book.x,
-                      top: scene.book.y,
-                      width: scene.book.w,
+                      left: toXPercent(scene.book.x),
+                      top: toYPercent(scene.book.y),
+                      width: safeBookWidth(scene.book),
                     }}
                     initial={{ opacity: 0, y: 28, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -712,12 +742,13 @@ export function StorySceneViewer({
                     <MemoryBook
                       pageCount={scene.book.pageCount}
                       pages={scene.book.pages}
-                      currentPage={scene.book.currentPage}
-                      width={scene.book.w}
-                      height={scene.book.h}
-                      coverImage={
-                        scene.book.coverImage || scene.backgroundImage
+                      currentPage={currentBookPage}
+                      onCurrentPageChange={(page) =>
+                        handleBookPageChange(scene.id, page)
                       }
+                      width={Math.min(scene.book.w, 760)}
+                      height={Math.min(scene.book.h, 460)}
+                      coverImage={scene.book.coverImage || scene.backgroundImage}
                       coverPositionX={scene.book.coverPositionX ?? 50}
                       coverPositionY={scene.book.coverPositionY ?? 50}
                       title={scene.book.title || `${scene.name} Memory Book`}
@@ -732,15 +763,15 @@ export function StorySceneViewer({
                     key={item.id}
                     className="absolute"
                     style={{
-                      left: item.x,
-                      top: item.y,
-                      width: item.w,
-                      height: item.h,
+                      left: toXPercent(item.x),
+                      top: toYPercent(item.y),
+                      width: safeItemWidth(item),
+                      height: toYPercent(item.h),
                       zIndex: (item.z ?? 1) + 20,
                     }}
                     initial={{
                       opacity: 0,
-                      y: 26,
+                      y: 24,
                       scale: 0.97,
                     }}
                     animate={{
@@ -750,7 +781,7 @@ export function StorySceneViewer({
                     }}
                     exit={{
                       opacity: 0,
-                      y: -20,
+                      y: -18,
                       scale: 0.97,
                     }}
                     transition={{
@@ -760,12 +791,15 @@ export function StorySceneViewer({
                   >
                     {item.type === "text" ? (
                       <div
-                        className="whitespace-pre-wrap"
+                        className="whitespace-pre-wrap break-words leading-tight"
                         style={{
                           color: item.color || "#fff",
-                          fontSize: item.fontSize || 24,
+                          fontSize: responsiveFont(item.fontSize),
                           fontWeight: item.fontWeight || 700,
                           textShadow: "0 6px 30px rgba(0,0,0,0.35)",
+                          maxWidth: "100%",
+                          overflowWrap: "break-word",
+                          wordBreak: "break-word",
                         }}
                       >
                         {item.content}
@@ -774,9 +808,11 @@ export function StorySceneViewer({
                       <img
                         src={item.src}
                         alt="Story memory"
-                        className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+                        className="h-full w-full rounded-[1.25rem] object-cover shadow-2xl sm:rounded-[1.75rem]"
                         style={{
-                          objectPosition: `${item.imagePositionX ?? 50}% ${item.imagePositionY ?? 50}%`,
+                          objectPosition: `${item.imagePositionX ?? 50}% ${
+                            item.imagePositionY ?? 50
+                          }%`,
                         }}
                       />
                     ) : null}
@@ -788,7 +824,7 @@ export function StorySceneViewer({
         </motion.div>
       </AnimatePresence>
 
-      <div className="absolute left-1/2 top-6 z-[95] flex -translate-x-1/2 gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur-md">
+      <div className="absolute left-1/2 top-5 z-[95] flex -translate-x-1/2 gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur-md sm:top-6">
         {scenes.map((currentScene, index) => (
           <button
             key={currentScene.id}
@@ -802,12 +838,12 @@ export function StorySceneViewer({
         ))}
       </div>
 
-      <div className="absolute bottom-8 right-8 z-[95] flex gap-3">
+      <div className="absolute bottom-5 left-1/2 z-[95] flex w-full max-w-[360px] -translate-x-1/2 justify-center gap-3 px-4 sm:bottom-8 sm:left-auto sm:right-8 sm:w-auto sm:max-w-none sm:translate-x-0 sm:px-0">
         {activeIndex > 0 ? (
           <button
             type="button"
             onClick={() => goToScene(activeIndex - 1)}
-            className="rounded-full border border-white/20 bg-black/30 px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md transition hover:bg-black/45"
+            className="rounded-full border border-white/20 bg-black/30 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md transition hover:bg-black/45 sm:px-6 sm:text-sm"
           >
             Previous
           </button>
@@ -817,7 +853,7 @@ export function StorySceneViewer({
           <button
             type="button"
             onClick={() => goToScene(activeIndex + 1)}
-            className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-xl transition hover:scale-[1.02]"
+            className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-xl transition hover:scale-[1.02] sm:px-6 sm:text-sm"
           >
             Next
           </button>
@@ -825,7 +861,7 @@ export function StorySceneViewer({
           <button
             type="button"
             onClick={() => goToScene(0)}
-            className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-xl transition hover:scale-[1.02]"
+            className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-xl transition hover:scale-[1.02] sm:px-6 sm:text-sm"
           >
             Back to Start
           </button>
