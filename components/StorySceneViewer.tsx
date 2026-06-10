@@ -642,7 +642,7 @@ useEffect(() => {
 }, []);
 
 const mobileBookWidth = Math.min(viewportWidth - 24, 360);
-const mobileBookHeight = Math.round(mobileBookWidth * 1.45);
+const mobileBookHeight = Math.round(mobileBookWidth * 1.12);
 
   return (
     <section
@@ -764,7 +764,7 @@ const mobileBookHeight = Math.round(mobileBookWidth * 1.45);
 {/* Mobile album */}
 {/* Mobile album - full screen */}
 <motion.div
-  className="absolute inset-x-0 top-[78px] bottom-[96px] z-[80] flex items-center justify-center px-3 sm:hidden"
+  className="absolute inset-x-0 top-[95px] bottom-[120px] z-[80] flex items-center justify-center px-3 sm:hidden"
   initial={{ opacity: 0, y: 24, scale: 0.96 }}
   animate={{ opacity: 1, y: 0, scale: 1 }}
   exit={{ opacity: 0, y: -18, scale: 0.96 }}
