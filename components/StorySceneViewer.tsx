@@ -745,33 +745,27 @@ export function StorySceneViewer({
                       />
                     </motion.div>
 
-                    {/* Mobile album */}
-                    <motion.div
-                      className="absolute left-1/2 top-[120px] z-[70] block w-full max-w-[380px] -translate-x-1/2 px-3 sm:hidden"
-                      initial={{ opacity: 0, y: 24, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -18, scale: 0.96 }}
-                      transition={{ duration: 0.65, delay: 0.12 }}
-                    >
-                      <MemoryBook
-                        pageCount={scene.book.pageCount}
-                        pages={scene.book.pages}
-                        currentPage={currentBookPage}
-                        onCurrentPageChange={(page) =>
-                          handleBookPageChange(scene.id, page)
-                        }
-                        width={360}
-                        height={270}
-                        coverImage={
-                          scene.book.coverImage || scene.backgroundImage
-                        }
-                        coverPositionX={scene.book.coverPositionX ?? 50}
-                        coverPositionY={scene.book.coverPositionY ?? 50}
-                        title={
-                          scene.book.title || `${scene.name} Memory Book`
-                        }
-                      />
-                    </motion.div>
+{/* Mobile album */}
+<motion.div
+  className="absolute left-1/2 top-[95px] z-[70] block w-[90vw] max-w-[300px] -translate-x-1/2 sm:hidden"
+  initial={{ opacity: 0, y: 24, scale: 0.96 }}
+  animate={{ opacity: 1, y: 0, scale: 1 }}
+  exit={{ opacity: 0, y: -18, scale: 0.96 }}
+  transition={{ duration: 0.65, delay: 0.12 }}
+>
+  <MemoryBook
+    pageCount={scene.book.pageCount}
+    pages={scene.book.pages}
+    currentPage={currentBookPage}
+    onCurrentPageChange={(page) => handleBookPageChange(scene.id, page)}
+    width={290}
+    height={215}
+    coverImage={scene.book.coverImage || scene.backgroundImage}
+    coverPositionX={scene.book.coverPositionX ?? 50}
+    coverPositionY={scene.book.coverPositionY ?? 50}
+    title={scene.book.title || `${scene.name} Memory Book`}
+  />
+</motion.div>
                   </>
                 ) : null}
 
