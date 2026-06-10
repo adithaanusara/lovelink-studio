@@ -268,10 +268,10 @@ export function PuzzleGameScene({
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur-xl">
-            <div className="text-xs font-bold uppercase tracking-[0.3em] text-pink-200">
-              Original Photo
-            </div>
+          <div className="hidden rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur-xl lg:block">
+  <div className="text-xs font-bold uppercase tracking-[0.3em] text-pink-200">
+    Original Photo
+  </div>
 
             <div className="mt-3 overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20">
               <img
@@ -294,36 +294,58 @@ export function PuzzleGameScene({
         </div>
       </div>
 
-      {(won || lost) && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/55 p-4">
-          <div
-            className="w-full max-w-[720px] rounded-[2rem] border border-white/15 bg-white/10 px-8 py-10 text-center text-white shadow-2xl backdrop-blur-2xl"
-            style={{ animation: "puzzle-pop 0.35s ease-out" }}
-          >
-            <div className="text-sm uppercase tracking-[0.35em] text-cyan-200">
-              Sliding Puzzle
-            </div>
+{(won || lost) && (
+  <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+    <div
+      className="w-full max-w-[520px] rounded-[2rem] border border-white/15 bg-white/10 p-5 text-center text-white shadow-2xl backdrop-blur-2xl"
+      style={{ animation: "puzzle-pop 0.35s ease-out" }}
+    >
+      <div className="text-xs font-bold uppercase tracking-[0.4em] text-pink-200">
+        {won ? "Puzzle Completed" : "Time’s Up"}
+      </div>
 
-            <div className="mt-4 text-4xl font-black md:text-6xl">
-              {won ? "YOU SOLVED IT!" : "TIME’S UP!"}
-            </div>
+      <div className="mt-3 text-3xl font-black leading-tight md:text-5xl">
+        {won ? (
+          <>
+            You Unlocked
+            <br />
+            This Memory 💖
+          </>
+        ) : (
+          <>
+            Try Again
+            <br />
+            My Love
+          </>
+        )}
+      </div>
 
-            <div className="mt-4 text-base text-white/85">
-              {won
-                ? "Great job. You completed the puzzle successfully."
-                : "Try again and complete the image before time runs out."}
-            </div>
-
-            <button
-              type="button"
-              onClick={resetGame}
-              className="mt-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-4 text-sm font-bold uppercase tracking-[0.22em] text-white shadow-xl"
-            >
-              Play Again
-            </button>
-          </div>
+      {won ? (
+        <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-white/20 bg-black/20 shadow-2xl">
+          <img
+            src={imageUrl}
+            alt="Unlocked memory"
+            className="max-h-[55svh] w-full object-contain"
+          />
         </div>
-      )}
+      ) : null}
+
+      <div className="mt-4 text-sm font-semibold leading-relaxed text-white/85 md:text-base">
+        {won
+          ? "Every piece came together beautifully, just like this memory."
+          : "Try again and complete the image before time runs out."}
+      </div>
+
+      <button
+        type="button"
+        onClick={resetGame}
+        className="mt-6 rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-7 py-3 text-sm font-bold uppercase tracking-[0.22em] text-white shadow-xl transition hover:scale-[1.03]"
+      >
+        {won ? "Play Again 💕" : "Try Again"}
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }
