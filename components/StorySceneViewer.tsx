@@ -553,22 +553,6 @@ function toYPercent(value: number) {
   return `${(value / DESIGN_HEIGHT) * 100}%`;
 }
 
-function responsiveFont(size?: number) {
-  const safeSize = size || 24;
-
-  // Desktop size eka max widiyata thiyenawa.
-  // Mobile waladi viewport width ekata adu wenawa.
-  return `clamp(16px, ${(safeSize / DESIGN_WIDTH) * 100}vw, ${safeSize}px)`;
-}
-
-function safeItemWidth(item: StorySceneItem) {
-  return `min(${toXPercent(item.w)}, calc(100% - ${toXPercent(item.x)} - 20px))`;
-}
-
-function safeBookWidth(book: BookData) {
-  return `min(${toXPercent(book.w)}, calc(100% - ${toXPercent(book.x)} - 20px))`;
-}
-
 export function StorySceneViewer({
   scenes,
   animation,
@@ -722,38 +706,73 @@ export function StorySceneViewer({
                   <FallingDecorLayer type="falling-petals" />
                 ) : null}
 
-                {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
+                {animation === "sparkle-hearts" ? (
+                  <SparkleHeartsLayer />
+                ) : null}
 
                 {scene.book?.enabled ? (
-                  <motion.div
-                    className="absolute z-[70]"
-                    style={{
-                      left: toXPercent(scene.book.x),
-                      top: toYPercent(scene.book.y),
-                      width: safeBookWidth(scene.book),
-                    }}
-                    initial={{ opacity: 0, y: 28, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -18, scale: 0.96 }}
-                    transition={{ duration: 0.65, delay: 0.12 }}
-                  >
-                    <MemoryBook
-                      pageCount={scene.book.pageCount}
-                      pages={scene.book.pages}
-                      currentPage={currentBookPage}
-                      onCurrentPageChange={(page) =>
-                        handleBookPageChange(scene.id, page)
-                      }
-                      width={Math.min(scene.book.w, 760)}
-                      height={Math.min(scene.book.h, 460)}
-                      coverImage={
-                        scene.book.coverImage || scene.backgroundImage
-                      }
-                      coverPositionX={scene.book.coverPositionX ?? 50}
-                      coverPositionY={scene.book.coverPositionY ?? 50}
-                      title={scene.book.title || `${scene.name} Memory Book`}
-                    />
-                  </motion.div>
+                  <>
+                    {/* Desktop / tablet album */}
+                    <motion.div
+                      className="absolute z-[70] hidden sm:block"
+                      style={{
+                        left: scene.book.x,
+                        top: scene.book.y,
+                        width: scene.book.w,
+                      }}
+                      initial={{ opacity: 0, y: 28, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -18, scale: 0.96 }}
+                      transition={{ duration: 0.65, delay: 0.12 }}
+                    >
+                      <MemoryBook
+                        pageCount={scene.book.pageCount}
+                        pages={scene.book.pages}
+                        currentPage={currentBookPage}
+                        onCurrentPageChange={(page) =>
+                          handleBookPageChange(scene.id, page)
+                        }
+                        width={scene.book.w}
+                        height={scene.book.h}
+                        coverImage={
+                          scene.book.coverImage || scene.backgroundImage
+                        }
+                        coverPositionX={scene.book.coverPositionX ?? 50}
+                        coverPositionY={scene.book.coverPositionY ?? 50}
+                        title={
+                          scene.book.title || `${scene.name} Memory Book`
+                        }
+                      />
+                    </motion.div>
+
+                    {/* Mobile album */}
+                    <motion.div
+                      className="absolute left-1/2 top-[120px] z-[70] block w-full max-w-[380px] -translate-x-1/2 px-3 sm:hidden"
+                      initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -18, scale: 0.96 }}
+                      transition={{ duration: 0.65, delay: 0.12 }}
+                    >
+                      <MemoryBook
+                        pageCount={scene.book.pageCount}
+                        pages={scene.book.pages}
+                        currentPage={currentBookPage}
+                        onCurrentPageChange={(page) =>
+                          handleBookPageChange(scene.id, page)
+                        }
+                        width={360}
+                        height={270}
+                        coverImage={
+                          scene.book.coverImage || scene.backgroundImage
+                        }
+                        coverPositionX={scene.book.coverPositionX ?? 50}
+                        coverPositionY={scene.book.coverPositionY ?? 50}
+                        title={
+                          scene.book.title || `${scene.name} Memory Book`
+                        }
+                      />
+                    </motion.div>
+                  </>
                 ) : null}
 
                 <div className="absolute inset-0 bg-black/10" />
@@ -820,76 +839,81 @@ export function StorySceneViewer({
                 </div>
 
                 {/* Mobile layout */}
-{/* Mobile layout */}
-<div className="absolute inset-x-0 top-0 z-[40] h-[100svh] overflow-y-auto px-5 pb-32 pt-20 sm:hidden">
-  <div className="flex min-h-[100svh] w-full flex-col items-center">
-    {scene.items
-      .slice()
-      .sort((a, b) => a.y - b.y)
-      .map((item, index) => {
-        const isImage = item.type === "image";
+                <div className="absolute inset-x-0 top-0 z-[40] h-[100svh] overflow-y-auto px-5 pb-32 pt-20 sm:hidden">
+                  <div className="flex min-h-[100svh] w-full flex-col items-center">
+                    {scene.items
+                      .slice()
+                      .sort((a, b) => a.y - b.y)
+                      .map((item, index) => {
+                        const isImage = item.type === "image";
 
-        return (
-          <motion.div
-            key={`mobile-${item.id}`}
-            className={`w-full max-w-[340px] ${
-              isImage ? "mt-14 mb-10" : "mb-7"
-            }`}
-            initial={{
-              opacity: 0,
-              y: 22,
-              scale: 0.97,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              scale: 1,
-            }}
-            exit={{
-              opacity: 0,
-              y: -18,
-              scale: 0.97,
-            }}
-            transition={{
-              duration: 0.45,
-              delay: 0.12 + index * 0.05,
-            }}
-          >
-            {item.type === "text" ? (
-              <div
-                className="whitespace-pre-wrap break-words text-center leading-tight"
-                style={{
-                  color: item.color || "#fff",
-                  fontSize: `clamp(24px, ${
-                    ((item.fontSize || 28) / 1400) * 100
-                  }vw, ${Math.min(item.fontSize || 28, 42)}px)`,
-                  fontWeight: item.fontWeight || 700,
-                  textShadow: "0 6px 30px rgba(0,0,0,0.45)",
-                  overflowWrap: "anywhere",
-                  wordBreak: "break-word",
-                }}
-              >
-                {item.content}
-              </div>
-            ) : item.src ? (
-              <div className="mx-auto w-full max-w-[230px] overflow-hidden rounded-[1.25rem] shadow-2xl">
-  <img
-    src={item.src}
-    alt="Story memory"
-    className="h-auto w-full object-contain"
-    style={{
-      objectPosition: `${item.imagePositionX ?? 50}% ${
-        item.imagePositionY ?? 65
-      }%`,
-    }}
-  />
-</div>
-            ) : null}
-          </motion.div>
-        );
-      })}
-  </div>
-</div>
+                        return (
+                          <motion.div
+                            key={`mobile-${item.id}`}
+                            className={`w-full ${
+                              isImage
+                                ? "mt-20 mb-10 max-w-[260px]"
+                                : "mb-7 max-w-[340px]"
+                            }`}
+                            initial={{
+                              opacity: 0,
+                              y: 22,
+                              scale: 0.97,
+                            }}
+                            animate={{
+                              opacity: 1,
+                              y: 0,
+                              scale: 1,
+                            }}
+                            exit={{
+                              opacity: 0,
+                              y: -18,
+                              scale: 0.97,
+                            }}
+                            transition={{
+                              duration: 0.45,
+                              delay: 0.12 + index * 0.05,
+                            }}
+                          >
+                            {item.type === "text" ? (
+                              <div
+                                className="whitespace-pre-wrap break-words text-center leading-tight"
+                                style={{
+                                  color: item.color || "#fff",
+                                  fontSize: `clamp(24px, ${
+                                    ((item.fontSize || 28) / 1400) * 100
+                                  }vw, ${Math.min(
+                                    item.fontSize || 28,
+                                    42,
+                                  )}px)`,
+                                  fontWeight: item.fontWeight || 700,
+                                  textShadow:
+                                    "0 6px 30px rgba(0,0,0,0.45)",
+                                  overflowWrap: "anywhere",
+                                  wordBreak: "break-word",
+                                }}
+                              >
+                                {item.content}
+                              </div>
+                            ) : item.src ? (
+                              <div className="mx-auto w-full overflow-hidden rounded-[1.25rem] shadow-2xl">
+                                <img
+                                  src={item.src}
+                                  alt="Story memory"
+                                  className="h-auto w-full object-contain"
+                                  style={{
+                                    objectPosition: `${
+                                      item.imagePositionX ?? 50
+                                    }% ${item.imagePositionY ?? 65}%`,
+                                  }}
+                                />
+                              </div>
+                            ) : null}
+                          </motion.div>
+                        );
+                      })}
+                  </div>
+                </div>
               </>
             )}
           </div>
