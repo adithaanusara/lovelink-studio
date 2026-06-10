@@ -853,82 +853,80 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
 
                 {/* Mobile layout */}
                 {/* Mobile layout */}
+{/* Mobile layout - use editor positions */}
 {!scene.book?.enabled ? (
-  <div className="absolute inset-x-0 top-0 z-[40] h-[100svh] overflow-y-auto px-5 pb-32 pt-20 sm:hidden">
-    <div className="flex min-h-[100svh] w-full flex-col items-center">
-      {scene.items
-        .slice()
-        .sort((a, b) => a.y - b.y)
-        .map((item, index) => {
-          const isImage = item.type === "image";
-          const isPinkText =
-  item.type === "text" &&
-  index > 0;
+  <div className="absolute inset-0 z-[40] sm:hidden">
+    {scene.items.map((item, index) => {
+      const isText = item.type === "text";
 
-          return (
-            <motion.div
-              key={`mobile-${item.id}`}
-              className={`w-full ${
-  isImage
-    ? "mt-20 mb-10 max-w-[260px]"
-    : isPinkText
-      ? "mt-70 mb-7 max-w-[340px]"
-      : "mb-7 max-w-[340px]"
-}`}
-              initial={{
-                opacity: 0,
-                y: 22,
-                scale: 0.97,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1,
-              }}
-              exit={{
-                opacity: 0,
-                y: -18,
-                scale: 0.97,
-              }}
-              transition={{
-                duration: 0.45,
-                delay: 0.12 + index * 0.05,
+      return (
+        <motion.div
+          key={`mobile-${item.id}`}
+          className="absolute"
+          style={{
+            left: `${(item.x / 1400) * 100}%`,
+            top: `${(item.y / 900) * 100}%`,
+            width: isText
+              ? `min(${(item.w / 1400) * 100}%, calc(100vw - 32px))`
+              : `min(${(item.w / 1400) * 100}%, 280px)`,
+            height: isText ? "auto" : `${(item.h / 900) * 100}%`,
+            zIndex: (item.z ?? 1) + 20,
+            transform:
+              item.x > 700
+                ? "translateX(-50%)"
+                : "none",
+          }}
+          initial={{
+            opacity: 0,
+            y: 18,
+            scale: 0.97,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            scale: 1,
+          }}
+          exit={{
+            opacity: 0,
+            y: -18,
+            scale: 0.97,
+          }}
+          transition={{
+            duration: 0.45,
+            delay: 0.12 + index * 0.05,
+          }}
+        >
+          {item.type === "text" ? (
+            <div
+              className="whitespace-pre-wrap break-words text-center leading-tight"
+              style={{
+                color: item.color || "#fff",
+                fontSize: `clamp(22px, ${
+                  ((item.fontSize || 28) / 1400) * 100
+                }vw, ${Math.min(item.fontSize || 28, 42)}px)`,
+                fontWeight: item.fontWeight || 700,
+                textShadow: "0 6px 30px rgba(0,0,0,0.45)",
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
               }}
             >
-              {item.type === "text" ? (
-                <div
-                  className="whitespace-pre-wrap break-words text-center leading-tight"
-                  style={{
-                    color: item.color || "#fff",
-                    fontSize: `clamp(24px, ${
-                      ((item.fontSize || 28) / 1400) * 100
-                    }vw, ${Math.min(item.fontSize || 28, 42)}px)`,
-                    fontWeight: item.fontWeight || 700,
-                    textShadow: "0 6px 30px rgba(0,0,0,0.45)",
-                    overflowWrap: "anywhere",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {item.content}
-                </div>
-              ) : item.src ? (
-                <div className="mx-auto w-full overflow-hidden rounded-[1.25rem] shadow-2xl">
-                  <img
-                    src={item.src}
-                    alt="Story memory"
-                    className="h-auto w-full object-contain"
-                    style={{
-                      objectPosition: `${item.imagePositionX ?? 50}% ${
-                        item.imagePositionY ?? 65
-                      }%`,
-                    }}
-                  />
-                </div>
-              ) : null}
-            </motion.div>
-          );
-        })}
-    </div>
+              {item.content}
+            </div>
+          ) : item.src ? (
+            <img
+              src={item.src}
+              alt="Story memory"
+              className="h-full w-full rounded-[1.25rem] object-cover shadow-2xl"
+              style={{
+                objectPosition: `${item.imagePositionX ?? 50}% ${
+                  item.imagePositionY ?? 65
+                }%`,
+              }}
+            />
+          ) : null}
+        </motion.div>
+      );
+    })}
   </div>
 ) : null}
               </>
