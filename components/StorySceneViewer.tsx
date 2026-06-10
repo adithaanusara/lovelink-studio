@@ -758,66 +758,133 @@ export function StorySceneViewer({
 
                 <div className="absolute inset-0 bg-black/10" />
 
-                {scene.items.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    className="absolute"
-                    style={{
-                      left: toXPercent(item.x),
-                      top: toYPercent(item.y),
-                      width: safeItemWidth(item),
-                      height: toYPercent(item.h),
-                      zIndex: (item.z ?? 1) + 20,
-                    }}
-                    initial={{
-                      opacity: 0,
-                      y: 24,
-                      scale: 0.97,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                      scale: 1,
-                    }}
-                    exit={{
-                      opacity: 0,
-                      y: -18,
-                      scale: 0.97,
-                    }}
-                    transition={{
-                      duration: 0.45,
-                      delay: 0.12 + index * 0.05,
-                    }}
-                  >
-                    {item.type === "text" ? (
-                      <div
-                        className="whitespace-pre-wrap break-words leading-tight"
-                        style={{
-                          color: item.color || "#fff",
-                          fontSize: responsiveFont(item.fontSize),
-                          fontWeight: item.fontWeight || 700,
-                          textShadow: "0 6px 30px rgba(0,0,0,0.35)",
-                          maxWidth: "100%",
-                          overflowWrap: "break-word",
-                          wordBreak: "break-word",
+                {/* Desktop / tablet layout */}
+                <div className="hidden sm:block">
+                  {scene.items.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      className="absolute"
+                      style={{
+                        left: item.x,
+                        top: item.y,
+                        width: item.w,
+                        height: item.h,
+                        zIndex: (item.z ?? 1) + 20,
+                      }}
+                      initial={{
+                        opacity: 0,
+                        y: 26,
+                        scale: 0.97,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        y: -20,
+                        scale: 0.97,
+                      }}
+                      transition={{
+                        duration: 0.45,
+                        delay: 0.12 + index * 0.05,
+                      }}
+                    >
+                      {item.type === "text" ? (
+                        <div
+                          className="whitespace-pre-wrap"
+                          style={{
+                            color: item.color || "#fff",
+                            fontSize: item.fontSize || 24,
+                            fontWeight: item.fontWeight || 700,
+                            textShadow: "0 6px 30px rgba(0,0,0,0.35)",
+                          }}
+                        >
+                          {item.content}
+                        </div>
+                      ) : item.src ? (
+                        <img
+                          src={item.src}
+                          alt="Story memory"
+                          className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+                          style={{
+                            objectPosition: `${item.imagePositionX ?? 50}% ${
+                              item.imagePositionY ?? 50
+                            }%`,
+                          }}
+                        />
+                      ) : null}
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Mobile layout */}
+                <div className="absolute inset-x-0 top-0 z-[40] flex h-[100svh] flex-col items-center overflow-y-auto px-5 pb-28 pt-24 sm:hidden">
+                  {scene.items
+                    .slice()
+                    .sort((a, b) => {
+                      const za = a.z ?? 1;
+                      const zb = b.z ?? 1;
+
+                      if (za !== zb) return za - zb;
+                      return a.y - b.y;
+                    })
+                    .map((item, index) => (
+                      <motion.div
+                        key={`mobile-${item.id}`}
+                        className="mb-6 w-full max-w-[340px]"
+                        initial={{
+                          opacity: 0,
+                          y: 22,
+                          scale: 0.97,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          scale: 1,
+                        }}
+                        exit={{
+                          opacity: 0,
+                          y: -18,
+                          scale: 0.97,
+                        }}
+                        transition={{
+                          duration: 0.45,
+                          delay: 0.12 + index * 0.05,
                         }}
                       >
-                        {item.content}
-                      </div>
-                    ) : item.src ? (
-                      <img
-                        src={item.src}
-                        alt="Story memory"
-                        className="h-full w-full rounded-[1.25rem] object-cover shadow-2xl sm:rounded-[1.75rem]"
-                        style={{
-                          objectPosition: `${item.imagePositionX ?? 50}% ${
-                            item.imagePositionY ?? 50
-                          }%`,
-                        }}
-                      />
-                    ) : null}
-                  </motion.div>
-                ))}
+                        {item.type === "text" ? (
+                          <div
+                            className="whitespace-pre-wrap break-words text-center leading-tight"
+                            style={{
+                              color: item.color || "#fff",
+                              fontSize: `clamp(24px, ${
+                                ((item.fontSize || 28) / 1400) * 100
+                              }vw, ${Math.min(item.fontSize || 28, 42)}px)`,
+                              fontWeight: item.fontWeight || 700,
+                              textShadow: "0 6px 30px rgba(0,0,0,0.45)",
+                              overflowWrap: "anywhere",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {item.content}
+                          </div>
+                        ) : item.src ? (
+                          <img
+                            src={item.src}
+                            alt="Story memory"
+                            className="mx-auto max-h-[440px] w-full rounded-[1.5rem] object-cover shadow-2xl"
+                            style={{
+                              objectPosition: `${item.imagePositionX ?? 50}% ${
+                                item.imagePositionY ?? 50
+                              }%`,
+                            }}
+                          />
+                        ) : null}
+                      </motion.div>
+                    ))}
+                </div>
               </>
             )}
           </div>
