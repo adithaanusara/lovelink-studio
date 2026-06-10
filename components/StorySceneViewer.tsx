@@ -872,7 +872,7 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
   isImage
     ? "mt-20 mb-10 max-w-[260px]"
     : isPinkText
-      ? "mt-44 mb-7 max-w-[340px]"
+      ? "mt-70 mb-7 max-w-[340px]"
       : "mb-7 max-w-[340px]"
 }`}
               initial={{
