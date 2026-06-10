@@ -697,14 +697,14 @@ export function StorySceneViewer({
                 {scene.backgroundImage ? (
                   <>
                     <motion.img
-                      src={scene.backgroundImage}
-                      alt={`${scene.name} background`}
-                      className="absolute inset-0 h-full w-full object-cover"
-                      style={{
-                        objectPosition: `${scene.backgroundPositionX ?? 50}% ${
-                          scene.backgroundPositionY ?? 50
-                        }%`,
-                      }}
+                        src={scene.backgroundImage}
+  alt={`${scene.name} background`}
+  className="absolute inset-0 h-full w-full object-cover"
+  style={{
+    objectPosition: `${scene.backgroundPositionX ?? 50}% ${
+      scene.backgroundPositionY ?? 75
+    }%`,
+  }}
                       initial={{ scale: 1.08, opacity: 0.7 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.96, opacity: 0.65 }}
@@ -805,15 +805,15 @@ export function StorySceneViewer({
                         </div>
                       ) : item.src ? (
                         <img
-                          src={item.src}
-                          alt="Story memory"
-                          className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
-                          style={{
-                            objectPosition: `${item.imagePositionX ?? 50}% ${
-                              item.imagePositionY ?? 50
-                            }%`,
-                          }}
-                        />
+  src={item.src}
+  alt="Story memory"
+  className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+  style={{
+    objectPosition: `${item.imagePositionX ?? 50}% ${
+      item.imagePositionY ?? 65
+    }%`,
+  }}
+/>
                       ) : null}
                     </motion.div>
                   ))}
@@ -872,15 +872,15 @@ export function StorySceneViewer({
                           </div>
                         ) : item.src ? (
                           <img
-                            src={item.src}
-                            alt="Story memory"
-                            className="mx-auto max-h-[440px] w-full rounded-[1.5rem] object-cover shadow-2xl"
-                            style={{
-                              objectPosition: `${item.imagePositionX ?? 50}% ${
-                                item.imagePositionY ?? 50
-                              }%`,
-                            }}
-                          />
+  src={item.src}
+  alt="Story memory"
+  className="mx-auto max-h-[420px] w-full rounded-[1.5rem] object-contain shadow-2xl"
+  style={{
+    objectPosition: `${item.imagePositionX ?? 50}% ${
+      item.imagePositionY ?? 65
+    }%`,
+  }}
+/>
                         ) : null}
                       </motion.div>
                     ))}
