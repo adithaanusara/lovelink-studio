@@ -464,22 +464,27 @@ export function FlappyBirdScene({
               animation: "challenge-pop 0.6s ease-out, challenge-glow 2.2s ease-in-out infinite"
             }}
           >
-            <div className="text-sm font-bold uppercase tracking-[0.5em] text-emerald-200">
-              Challenge Complete
-            </div>
-            <div className="mt-4 text-5xl font-black md:text-7xl">
-              MISSION PASSED
-            </div>
-            <div className="mt-4 text-lg text-white/90">
-              You reached the target by passing {score} pipes.
-            </div>
-            <button
-              type="button"
-              onClick={resetGame}
-              className="mt-8 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-500 px-8 py-4 text-sm font-bold uppercase tracking-[0.25em] text-slate-950 shadow-xl transition hover:scale-[1.03]"
-            >
-              Play Again
-            </button>
+            <div className="text-sm font-bold uppercase tracking-[0.5em] text-pink-200">
+  Love Challenge Complete
+</div>
+
+<div className="mt-4 text-5xl font-black leading-tight md:text-7xl">
+  YOU WON
+  <br />
+  MY HEART
+</div>
+
+<div className="mt-5 text-lg font-semibold leading-relaxed text-white/90 md:text-xl">
+  You passed every challenge and unlocked a special place in my heart. 💖
+</div>
+
+<button
+  type="button"
+  onClick={resetGame}
+  className="mt-8 rounded-full bg-gradient-to-r from-pink-400 to-violet-500 px-8 py-4 text-sm font-bold uppercase tracking-[0.25em] text-white shadow-xl transition hover:scale-[1.03]"
+>
+  Play Again 💕
+</button>
           </div>
         </div>
       ) : null}
