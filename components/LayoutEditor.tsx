@@ -795,8 +795,7 @@ export function LayoutEditor({
     return (
       <div
         ref={containerRef}
-        className="relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"
-      >
+className="relative isolate z-0 mx-auto h-[760px] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"      >
         <FlappyBirdScene />
       </div>
     );
@@ -806,8 +805,7 @@ export function LayoutEditor({
     return (
       <div
         ref={containerRef}
-        className="relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"
-      >
+className="relative isolate z-0 mx-auto h-[760px] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"      >
         <PuzzleGameScene
           imageUrl={puzzleImage}
           timeLimitSeconds={puzzleTimeLimit}
@@ -819,8 +817,7 @@ export function LayoutEditor({
   return (
     <div
       ref={containerRef}
-      className="relative isolate z-0 mx-auto aspect-[16/9] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"
-      style={{ background }}
+className="relative isolate z-0 mx-auto h-[760px] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"      style={{ background }}
       onMouseDown={() => onSelect(null)}
     >
       <Romantic3DStyles />
