@@ -567,6 +567,21 @@ export function StorySceneViewer({
   );
 
   const scene = scenes[activeIndex] ?? scenes[0];
+    const [viewportWidth, setViewportWidth] = useState(390);
+
+  useEffect(() => {
+    const updateViewportWidth = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    updateViewportWidth();
+    window.addEventListener("resize", updateViewportWidth);
+
+    return () => window.removeEventListener("resize", updateViewportWidth);
+  }, []);
+
+  const mobileBookWidth = Math.min(viewportWidth - 24, 360);
+  const mobileBookHeight = Math.round(mobileBookWidth * 1.12);
 
   useEffect(() => {
     if (!scenes.length) return;
@@ -628,21 +643,7 @@ export function StorySceneViewer({
       ? sceneBookPages[scene.id]
       : (scene.book?.currentPage ?? -1);
 
-      const [viewportWidth, setViewportWidth] = useState(390);
-
-useEffect(() => {
-  const updateViewportWidth = () => {
-    setViewportWidth(window.innerWidth);
-  };
-
-  updateViewportWidth();
-  window.addEventListener("resize", updateViewportWidth);
-
-  return () => window.removeEventListener("resize", updateViewportWidth);
-}, []);
-
-const mobileBookWidth = Math.min(viewportWidth - 24, 360);
-const mobileBookHeight = Math.round(mobileBookWidth * 1.12);
+      
 
   return (
     <section
