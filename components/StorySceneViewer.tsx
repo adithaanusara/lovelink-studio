@@ -861,15 +861,20 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
         .sort((a, b) => a.y - b.y)
         .map((item, index) => {
           const isImage = item.type === "image";
+          const isPinkText =
+  item.type === "text" &&
+  index > 0;
 
           return (
             <motion.div
               key={`mobile-${item.id}`}
               className={`w-full ${
-                isImage
-                  ? "mt-20 mb-10 max-w-[260px]"
-                  : "mb-7 max-w-[340px]"
-              }`}
+  isImage
+    ? "mt-20 mb-10 max-w-[260px]"
+    : isPinkText
+      ? "mt-12 mb-7 max-w-[340px]"
+      : "mb-7 max-w-[340px]"
+}`}
               initial={{
                 opacity: 0,
                 y: 22,
