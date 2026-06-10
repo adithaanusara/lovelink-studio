@@ -872,18 +872,18 @@ export function StorySceneViewer({
                 {item.content}
               </div>
             ) : item.src ? (
-              <div className="mx-auto w-full overflow-hidden rounded-[1.5rem] shadow-2xl">
-                <img
-                  src={item.src}
-                  alt="Story memory"
-                  className="h-auto w-full object-contain"
-                  style={{
-                    objectPosition: `${item.imagePositionX ?? 50}% ${
-                      item.imagePositionY ?? 65
-                    }%`,
-                  }}
-                />
-              </div>
+              <div className="mx-auto w-full max-w-[230px] overflow-hidden rounded-[1.25rem] shadow-2xl">
+  <img
+    src={item.src}
+    alt="Story memory"
+    className="h-auto w-full object-contain"
+    style={{
+      objectPosition: `${item.imagePositionX ?? 50}% ${
+        item.imagePositionY ?? 65
+      }%`,
+    }}
+  />
+</div>
             ) : null}
           </motion.div>
         );
