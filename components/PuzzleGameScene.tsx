@@ -268,8 +268,7 @@ export function PuzzleGameScene({
             </div>
           </div>
 
-          <div className="hidden rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur-xl lg:block">
-  <div className="text-xs font-bold uppercase tracking-[0.3em] text-pink-200">
+<div className="rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur-xl">  <div className="text-xs font-bold uppercase tracking-[0.3em] text-pink-200">
     Original Photo
   </div>
 
