@@ -104,13 +104,14 @@ export function Hero() {
               </div>
 
               <div className="overflow-hidden rounded-[1.6rem] border border-sky-300/70 bg-sky-100/60">
-                <img
-  src="/images/hero-bg.jpg"
-  alt="Romantic digital memory"
-  className="absolute inset-0 h-full w-full object-cover object-center"
-/>
+  <img
+    src="/images/hero-bg.jpg"
+    alt="Romantic preview"
+    className="h-[500px] w-full object-cover object-center"
+  />
+</div>
 
-              <div className="absolute bottom-8 left-8 right-8 rounded-[1.5rem] border border-sky-400/80 bg-sky-100/90 p-5 backdrop-blur-xl">
+<div className="absolute bottom-8 left-8 right-8 rounded-[1.5rem] border border-sky-400/80 bg-sky-100/90 p-5 backdrop-blur-xl">
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1 text-xs uppercase tracking-[0.28em] text-pink-600">
                   <Heart className="h-3.5 w-3.5" />
                   For someone special
