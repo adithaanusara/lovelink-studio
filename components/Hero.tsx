@@ -17,18 +17,13 @@ export function Hero() {
 
   return (
     <section className="relative overflow-hidden bg-sky-200 text-slate-900">
-      <video
-        className="absolute inset-0 h-full w-full object-cover"
-        autoPlay
-        muted
-        loop
-        playsInline
-      >
-        <source src="/videos/hero-video.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+      <img
+  src="/images/hero-bg.jpg"
+  alt="Romantic digital memory"
+  className="absolute inset-0 h-full w-full object-cover object-center"
+/>
 
-      <div className="absolute inset-0 bg-sky-200/72" />
+      <div className="absolute inset-0 bg-sky-100/62" />
       <div className="absolute inset-0 bg-gradient-to-b from-sky-100/80 via-sky-200/70 to-blue-300/78" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.22),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.22),transparent_30%)]" />
 
@@ -109,16 +104,11 @@ export function Hero() {
               </div>
 
               <div className="overflow-hidden rounded-[1.6rem] border border-sky-300/70 bg-sky-100/60">
-                <video
-                  className="h-[500px] w-full object-cover"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                >
-                  <source src="/videos/hero-video.mp4" type="video/mp4" />
-                </video>
-              </div>
+                <img
+  src="/images/hero-bg.jpg"
+  alt="Romantic digital memory"
+  className="absolute inset-0 h-full w-full object-cover object-center"
+/>
 
               <div className="absolute bottom-8 left-8 right-8 rounded-[1.5rem] border border-sky-400/80 bg-sky-100/90 p-5 backdrop-blur-xl">
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1 text-xs uppercase tracking-[0.28em] text-pink-600">
