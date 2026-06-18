@@ -762,7 +762,7 @@ export function StorySceneViewer({
                       />
                     </motion.div>
 
-{/* Mobile album */}
+
 {/* Mobile album - full screen */}
 <motion.div
 className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center justify-center px-3 sm:hidden"  initial={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -851,8 +851,7 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
                   ))}
                 </div>
 
-                {/* Mobile layout */}
-                {/* Mobile layout */}
+               
 {/* Mobile layout - use editor positions */}
 {!scene.book?.enabled ? (
   <div className="absolute inset-0 z-[40] sm:hidden">
