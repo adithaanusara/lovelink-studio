@@ -103,9 +103,9 @@ export function Hero() {
                 </span>
               </div>
 
-              <div className="overflow-hidden rounded-[1.6rem] border border-sky-300/70 bg-sky-100/60">
+             <div className="overflow-hidden rounded-[1.6rem] border border-sky-300/70 bg-sky-100/60">
   <img
-    src="/images/hero-bg.jpg"
+    src="/images/hero-bg.png"
     alt="Romantic preview"
     className="h-[500px] w-full object-cover object-center"
   />
