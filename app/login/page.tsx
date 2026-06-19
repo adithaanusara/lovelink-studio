@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -149,6 +150,16 @@ function LoginContent() {
   };
 
   return (
+  <>
+    <Link
+      href="/"
+      aria-label="Back to landing page"
+      className="fixed left-4 top-4 z-[999] inline-flex items-center gap-2 rounded-full border border-sky-300 bg-white/90 px-4 py-2.5 text-sm font-black text-slate-800 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white sm:left-6 sm:top-6"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      <span>Back to Home</span>
+    </Link>
+
     <AuthTiltCard
       mode="login"
       title="Welcome Back"
@@ -401,6 +412,7 @@ function LoginContent() {
         </div>
       ) : null}
     </AuthTiltCard>
+    </>
   );
 }
 
