@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ReactNode, useRef, useState } from "react";
-import { Heart } from "lucide-react";
+import { ArrowLeft, Heart } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 type AuthTiltCardProps = {
   mode: "login" | "signup";
@@ -27,6 +28,9 @@ export function AuthTiltCard({
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const card = cardRef.current;
     if (!card) return;
+
+    // Tilt only for a real mouse; a tap on a touch screen would leave the card skewed.
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
     const rect = card.getBoundingClientRect();
 
@@ -75,32 +79,32 @@ export function AuthTiltCard({
   }px), calc(-50% + ${-4 + eyeMove.y * 0.16}px))`;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-sky-100 px-4 py-10 text-slate-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.95),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(186,230,253,0.9),transparent_30%),linear-gradient(135deg,#dff4ff,#f8fbff_45%,#dbeafe)]" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 text-slate-950 sm:py-10">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.95),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(221,214,254,0.85),transparent_32%),linear-gradient(135deg,#fdf2f8,#f8fbff_45%,#e0e7ff)]" />
 
       <div className="pointer-events-none absolute left-[-120px] top-[-100px] h-80 w-80 rounded-full bg-pink-200/50 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-[-120px] right-[-100px] h-96 w-96 rounded-full bg-sky-300/60 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-120px] right-[-100px] h-96 w-96 rounded-full bg-violet-200/60 blur-3xl" />
 
       <div className="relative z-10 w-full max-w-6xl">
-        <div className="mb-6 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-lg">
-              <Heart className="h-5 w-5" />
-            </div>
-
-            <div>
-              <p className="font-black tracking-tight">LoveLink Studio</p>
-              <p className="text-xs font-medium text-slate-600">
-                Romantic animated pages
-              </p>
-            </div>
+        <div className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
+          <Link
+            href="/"
+            aria-label="Back to landing page"
+            className="btn btn-secondary bg-white/80 px-4 backdrop-blur-xl"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>
+              <span className="hidden sm:inline">Back to </span>Home
+            </span>
           </Link>
+
+          <Logo tagline="Romantic animated pages" className="hidden sm:inline-flex" />
 
           <Link
             href={mode === "login" ? "/signup" : "/login"}
-            className="rounded-full border border-sky-300 bg-white/70 px-5 py-2 text-sm font-bold text-slate-800 shadow-sm backdrop-blur-xl transition hover:bg-white"
+            className="btn btn-secondary bg-white/80 backdrop-blur-xl"
           >
-            {mode === "login" ? "Sign Up" : "Login"}
+            {mode === "login" ? "Sign up" : "Log in"}
           </Link>
         </div>
 
@@ -108,10 +112,10 @@ export function AuthTiltCard({
           ref={cardRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          className="grid overflow-hidden rounded-[2rem] border border-white/80 bg-white/75 shadow-[0_30px_90px_rgba(15,23,42,0.18)] backdrop-blur-2xl transition-transform duration-200 ease-out lg:grid-cols-[1fr_1fr]"
+          className="grid overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/80 shadow-[0_30px_90px_rgba(15,23,42,0.14)] backdrop-blur-2xl transition-transform duration-200 ease-out sm:rounded-[2rem] lg:grid-cols-[1fr_1fr]"
           style={{ transformStyle: "preserve-3d" }}
         >
-          <div className="relative hidden min-h-[640px] overflow-hidden bg-gradient-to-br from-sky-100 via-white to-sky-50 p-8 lg:block">
+          <div className="relative hidden min-h-[640px] overflow-hidden bg-gradient-to-br from-violet-100 via-white to-sky-50 p-8 lg:block">
             <div className="absolute left-10 top-10 h-32 w-32 rounded-full bg-sky-200/60 blur-3xl" />
             <div className="absolute bottom-10 right-10 h-40 w-40 rounded-full bg-violet-200/40 blur-3xl" />
 
@@ -250,18 +254,18 @@ export function AuthTiltCard({
             </div>
           </div>
 
-          <div className="flex min-h-[640px] items-center justify-center px-6 py-10 sm:px-10">
+          <div className="flex items-center justify-center px-5 py-8 sm:px-10 sm:py-10 lg:min-h-[640px]">
             <div className="w-full max-w-md">
-              <div className="mb-8 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg">
+              <div className="mb-6 text-center sm:mb-8">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-brand">
                   <Heart className="h-6 w-6" />
                 </div>
 
-                <h1 className="text-4xl font-black uppercase tracking-tight text-slate-950">
+                <h1 className="text-3xl font-black uppercase tracking-tight text-slate-950 sm:text-4xl">
                   {title}
                 </h1>
 
-                <p className="mt-2 text-sm font-medium text-slate-600">
+                <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-6 text-slate-600">
                   {subtitle}
                 </p>
               </div>

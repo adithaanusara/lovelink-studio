@@ -3,8 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Sparkles } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { LogOut, Menu, Sparkles, X } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { getSessionEmail, isLoggedIn, logout } from "@/lib/auth-client";
+
+const links = [
+  { href: "/#features", label: "Features" },
+  { href: "/#how-it-works", label: "How it works" }
+];
 
 export function Navbar() {
   const router = useRouter();
@@ -12,6 +19,7 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -19,37 +27,64 @@ export function Navbar() {
     setEmail(getSessionEmail());
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+
+    // The menu is phone-only, so close it if the window grows past that layout.
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const onDesktop = () => {
+      if (desktop.matches) setMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    desktop.addEventListener("change", onDesktop);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      desktop.removeEventListener("change", onDesktop);
+    };
+  }, [menuOpen]);
+
   const handleLogout = () => {
     logout();
     setLoggedIn(false);
     setEmail(null);
+    setMenuOpen(false);
     router.push("/");
   };
 
+  const closeMenu = () => setMenuOpen(false);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-sky-400/80 bg-sky-200/90 backdrop-blur-xl">
-      <div className="container flex items-center justify-between gap-4 py-4">
-        <Link
-          href="/"
-          className="flex items-center gap-3 text-sm font-semibold tracking-wide text-slate-900"
-        >
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-glow">
-            <Heart className="h-5 w-5" />
-          </div>
+    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
+      <div className="container flex h-16 items-center justify-between gap-3">
+        <Logo tagline="Create animated love pages" />
 
-          <div className="hidden sm:block">
-            <p className="text-base">LoveLink Studio</p>
-            <p className="text-xs text-slate-600">
-              Create animated love pages
-            </p>
-          </div>
-        </Link>
+        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-900/5 hover:text-slate-950"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
-        <nav className="flex flex-wrap items-center justify-end gap-2 md:gap-3">
-          {mounted && loggedIn ? (
+        {/* Session lives in the browser, so hold the actions back until it has been read. */}
+        <div className={`flex shrink-0 items-center gap-2 ${mounted ? "" : "invisible"}`}>
+          {loggedIn ? (
             <>
               {email ? (
-                <span className="max-w-[210px] truncate rounded-full border border-sky-400 bg-sky-50 px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm md:max-w-[300px]">
+                <span
+                  title={email}
+                  className="hidden max-w-[220px] truncate rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 lg:block"
+                >
                   {email}
                 </span>
               ) : null}
@@ -57,38 +92,114 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center rounded-full border border-sky-500 bg-sky-50 px-4 py-2 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-sky-100"
+                className="btn btn-ghost hidden md:inline-flex"
               >
-                Logout
+                Log out
               </button>
 
-              <Link
-                href="/create"
-                className="inline-flex items-center gap-2 rounded-full border border-pink-300 bg-pink-50 px-4 py-2 text-sm font-bold text-pink-700 shadow-sm transition hover:scale-[1.02] hover:bg-pink-100"
-              >
+              <Link href="/create" className="btn btn-primary shrink-0 whitespace-nowrap px-4 sm:px-5">
                 <Sparkles className="h-4 w-4" />
-                Start creating
+                <span className="hidden min-[380px]:inline">Start creating</span>
+                <span className="min-[380px]:hidden">Create</span>
               </Link>
             </>
           ) : (
             <>
-              <Link
-                href="/login"
-                className="inline-flex items-center rounded-full border border-sky-500 bg-sky-50 px-5 py-2 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-sky-100"
-              >
-                Login
+              <Link href="/login" className="btn btn-ghost hidden md:inline-flex">
+                Log in
               </Link>
 
-              <Link
-                href="/signup"
-                className="inline-flex items-center rounded-full border border-violet-300 bg-violet-50 px-5 py-2 text-sm font-bold text-violet-700 shadow-sm transition hover:bg-violet-100"
-              >
-                Sign Up
+              <Link href="/signup" className="btn btn-dark shrink-0 whitespace-nowrap px-4 sm:px-5">
+                Sign up
               </Link>
             </>
           )}
-        </nav>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-800 shadow-sm transition hover:bg-slate-50 md:hidden"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {menuOpen ? (
+          <>
+            {/* Absolute, not fixed: the header's backdrop blur would trap a fixed child inside it. */}
+            <motion.button
+              type="button"
+              aria-label="Close menu"
+              tabIndex={-1}
+              onClick={closeMenu}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-x-0 top-full z-40 h-[100svh] cursor-default bg-slate-950/25 md:hidden"
+            />
+
+            <motion.div
+              id="mobile-menu"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="absolute inset-x-0 top-full z-50 max-h-[calc(100svh-4rem)] overflow-y-auto border-b border-slate-200 bg-white shadow-xl md:hidden"
+            >
+              <div className="container flex flex-col gap-1 py-4">
+                {loggedIn && email ? (
+                  <p className="mb-2 truncate rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    Signed in as{" "}
+                    <span className="font-semibold text-slate-900">{email}</span>
+                  </p>
+                ) : null}
+
+                {links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMenu}
+                    className="flex min-h-[48px] items-center rounded-2xl px-4 text-base font-semibold text-slate-800 transition hover:bg-slate-50"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+
+                <div className="mt-3 grid gap-2 border-t border-slate-100 pt-4">
+                  {loggedIn ? (
+                    <>
+                      <Link href="/create" onClick={closeMenu} className="btn btn-primary btn-lg">
+                        <Sparkles className="h-4 w-4" />
+                        Start creating
+                      </Link>
+
+                      <button type="button" onClick={handleLogout} className="btn btn-secondary btn-lg">
+                        <LogOut className="h-4 w-4" />
+                        Log out
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/signup" onClick={closeMenu} className="btn btn-primary btn-lg">
+                        Sign up
+                      </Link>
+
+                      <Link href="/login" onClick={closeMenu} className="btn btn-secondary btn-lg">
+                        Log in
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
     </header>
   );
 }

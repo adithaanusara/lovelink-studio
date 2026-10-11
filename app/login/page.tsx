@@ -6,6 +6,8 @@ import { signIn } from "next-auth/react";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthTiltCard } from "@/components/AuthTiltCard";
+import { GoogleIcon } from "@/components/GoogleIcon";
+import { PasswordInput } from "@/components/PasswordInput";
 import {
   isLoggedIn,
   loginAccount,
@@ -149,150 +151,71 @@ function LoginContent() {
     setOtpLoading(false);
   };
 
-  return (
-  <>
-    <Link
-      href="/"
-      aria-label="Back to landing page"
-      className="fixed left-4 top-4 z-[999] inline-flex items-center gap-2 rounded-full border border-sky-300 bg-white/90 px-4 py-2.5 text-sm font-black text-slate-800 shadow-lg backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white sm:left-6 sm:top-6"
-    >
-      <ArrowLeft className="h-4 w-4" />
-      <span>Back to Home</span>
-    </Link>
+  const forgotSteps: ForgotStep[] = ["email", "otp", "password"];
+  const forgotStepIndex = forgotSteps.indexOf(forgotStep);
 
+  return (
     <AuthTiltCard
       mode="login"
-      title="Welcome Back"
-      subtitle="Enter your email and password to access your account"
+      title={showForgotPassword ? "Reset Password" : "Welcome Back"}
+      subtitle={
+        showForgotPassword
+          ? "We will email you a 6-digit OTP to confirm it is you"
+          : "Enter your email and password to access your account"
+      }
       imageTitle="EXPLORE. LOVE. CREATE."
       imageSubtitle="Continue building your romantic memory pages with cinematic animations."
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="grid gap-2">
-          <span className="text-sm font-bold text-slate-800">Email</span>
-
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-          />
-        </label>
-
-        <label className="grid gap-2">
-          <span className="text-sm font-bold text-slate-800">Password</span>
-
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-          />
-        </label>
-
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <label className="flex items-center gap-2 font-medium text-slate-600">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 accent-slate-950"
-            />
-            Remember me
-          </label>
-
-          <button
-            type="button"
-            onClick={() => {
-              setShowForgotPassword(true);
-              setOtpEmail(email);
-              resetForgotState();
-            }}
-            className="font-bold text-slate-900 transition hover:text-violet-700"
-          >
-            Forgot Password
-          </button>
-        </div>
-
-        {successMessage ? (
-          <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-            {successMessage}
-          </p>
-        ) : null}
-
-        {error ? (
-          <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
-            {error}
-          </p>
-        ) : null}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:scale-[1.01] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
-
-      <button
-        type="button"
-        onClick={() => {
-          void signIn("google", { callbackUrl: "/create" });
-        }}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
-      >
-        <span className="text-lg font-black">G</span>
-        Sign in with Google
-      </button>
-
-      <p className="mt-6 text-center text-sm font-medium text-slate-500">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="font-black text-slate-950 transition hover:text-violet-700"
-        >
-          Sign up
-        </Link>
-      </p>
-
       {showForgotPassword ? (
-        <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
-          <div className="mb-4">
-            <p className="text-sm font-black text-slate-900">
-              Reset password with OTP
+        <div>
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-slate-900">
+              Step {forgotStepIndex + 1} of 3
             </p>
 
-            <p className="mt-1 text-xs font-semibold text-slate-500">
-              Step{" "}
-              {forgotStep === "email"
-                ? "1 of 3"
-                : forgotStep === "otp"
-                  ? "2 of 3"
-                  : "3 of 3"}
-            </p>
+            <div className="flex gap-1.5" aria-hidden="true">
+              {forgotSteps.map((step, index) => (
+                <span
+                  key={step}
+                  className={`h-1.5 w-8 rounded-full transition ${
+                    index <= forgotStepIndex ? "bg-violet-600" : "bg-slate-200"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-3">
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+
+              if (forgotStep === "email") void handleRequestOtp();
+              if (forgotStep === "otp") void handleVerifyOtp();
+              if (forgotStep === "password") void handleResetPassword();
+            }}
+          >
             <label className="grid gap-2">
-              <span className="text-sm font-bold text-slate-800">Email</span>
+              <span className="field-label">Email</span>
 
               <input
                 type="email"
+                name="email"
+                autoComplete="email"
+                inputMode="email"
                 value={otpEmail}
                 disabled={forgotStep !== "email"}
                 onChange={(event) => setOtpEmail(event.target.value)}
                 placeholder="Enter your email"
-                className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                className="field"
               />
             </label>
 
             {forgotStep === "email" ? (
               <button
-                type="button"
+                type="submit"
                 disabled={otpLoading}
-                onClick={() => void handleRequestOtp()}
-                className="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-black text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn btn-dark w-full rounded-xl"
               >
                 {otpLoading ? "Sending OTP..." : "Send OTP to email"}
               </button>
@@ -301,12 +224,13 @@ function LoginContent() {
             {forgotStep === "otp" ? (
               <>
                 <label className="grid gap-2">
-                  <span className="text-sm font-bold text-slate-800">
-                    Enter OTP
-                  </span>
+                  <span className="field-label">Enter OTP</span>
 
                   <input
                     type="text"
+                    name="otp"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
                     maxLength={6}
                     value={otpCode}
                     onChange={(event) =>
@@ -315,15 +239,14 @@ function LoginContent() {
                       )
                     }
                     placeholder="6-digit OTP"
-                    className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold tracking-[0.25em] text-slate-950 outline-none transition placeholder:tracking-normal placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                    className="field text-center text-lg font-bold tracking-[0.4em] placeholder:text-base placeholder:tracking-normal"
                   />
                 </label>
 
                 <button
-                  type="button"
+                  type="submit"
                   disabled={otpLoading}
-                  onClick={() => void handleVerifyOtp()}
-                  className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn btn-dark w-full rounded-xl"
                 >
                   {otpLoading ? "Verifying..." : "Verify OTP"}
                 </button>
@@ -332,7 +255,7 @@ function LoginContent() {
                   type="button"
                   disabled={otpLoading}
                   onClick={() => void handleRequestOtp()}
-                  className="w-full rounded-xl border border-sky-300 bg-white px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn btn-secondary w-full rounded-xl"
                 >
                   Resend OTP
                 </button>
@@ -342,77 +265,166 @@ function LoginContent() {
             {forgotStep === "password" ? (
               <>
                 <label className="grid gap-2">
-                  <span className="text-sm font-bold text-slate-800">
-                    Create New Password
-                  </span>
+                  <span className="field-label">Create New Password</span>
 
-                  <input
-                    type="password"
+                  <PasswordInput
+                    name="new-password"
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
                     placeholder="Create new password"
-                    className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                   />
                 </label>
 
                 <label className="grid gap-2">
-                  <span className="text-sm font-bold text-slate-800">
-                    Confirm Password
-                  </span>
+                  <span className="field-label">Confirm Password</span>
 
-                  <input
-                    type="password"
+                  <PasswordInput
+                    name="confirm-password"
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     placeholder="Confirm new password"
-                    className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                   />
                 </label>
 
                 <button
-                  type="button"
+                  type="submit"
                   disabled={otpLoading}
-                  onClick={() => void handleResetPassword()}
-                  className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn btn-dark w-full rounded-xl"
                 >
                   {otpLoading ? "Updating password..." : "Update Password"}
                 </button>
               </>
             ) : null}
 
-            {otpMessage ? (
-              <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                {otpMessage}
-              </p>
-            ) : null}
+            <div aria-live="polite" className="space-y-3">
+              {otpMessage ? (
+                <p className="notice notice-success">{otpMessage}</p>
+              ) : null}
 
-            {devOtpPreview ? (
-              <p className="rounded-xl bg-violet-50 px-4 py-3 text-xs font-black tracking-[0.2em] text-violet-700">
-                DEV OTP: {devOtpPreview}
-              </p>
-            ) : null}
+              {devOtpPreview ? (
+                <p className="notice border border-violet-200 bg-violet-50 text-xs font-black tracking-[0.2em] text-violet-700">
+                  DEV OTP: {devOtpPreview}
+                </p>
+              ) : null}
 
-            {otpError ? (
-              <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
-                {otpError}
-              </p>
-            ) : null}
+              {otpError ? (
+                <p className="notice notice-error">{otpError}</p>
+              ) : null}
+            </div>
+          </form>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowForgotPassword(false);
+              resetForgotState();
+            }}
+            className="btn btn-ghost mt-4 w-full rounded-xl"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to login
+          </button>
+        </div>
+      ) : (
+        <>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="grid gap-2">
+              <span className="field-label">Email</span>
+
+              <input
+                type="email"
+                name="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="field"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="field-label">Password</span>
+
+              <PasswordInput
+                name="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </label>
+
+            <div className="flex flex-wrap items-center justify-between gap-x-3 text-sm">
+              <label className="flex min-h-[44px] items-center gap-2 font-medium text-slate-600">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 accent-violet-600"
+                />
+                Remember me
+              </label>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotPassword(true);
+                  setOtpEmail(email);
+                  resetForgotState();
+                }}
+                className="min-h-[44px] font-bold text-violet-700 transition hover:text-violet-900"
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <div aria-live="polite" className="space-y-3">
+              {successMessage ? (
+                <p className="notice notice-success">{successMessage}</p>
+              ) : null}
+
+              {error ? <p className="notice notice-error">{error}</p> : null}
+            </div>
 
             <button
-              type="button"
-              onClick={() => {
-                setShowForgotPassword(false);
-                resetForgotState();
-              }}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              type="submit"
+              disabled={isSubmitting}
+              className="btn btn-dark w-full rounded-xl"
             >
-              Back to login
+              {isSubmitting ? "Signing in..." : "Sign in"}
             </button>
+          </form>
+
+          <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" />
+            or
+            <span className="h-px flex-1 bg-slate-200" />
           </div>
-        </div>
-      ) : null}
+
+          <button
+            type="button"
+            onClick={() => {
+              void signIn("google", { callbackUrl: "/create" });
+            }}
+            className="btn btn-secondary w-full rounded-xl"
+          >
+            <GoogleIcon />
+            Sign in with Google
+          </button>
+
+          <p className="mt-6 text-center text-sm font-medium text-slate-500">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="-my-3 inline-block py-3 font-black text-slate-950 transition hover:text-violet-700"
+            >
+              Sign up
+            </Link>
+          </p>
+        </>
+      )}
     </AuthTiltCard>
-    </>
   );
 }
 
@@ -420,8 +432,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen items-center justify-center bg-sky-100 text-slate-900">
-          <div className="rounded-3xl border border-sky-200 bg-white px-8 py-6 text-center shadow-sm">
+        <main className="flex min-h-screen items-center justify-center px-4 text-slate-900">
+          <div className="surface px-8 py-6 text-center">
             <p className="text-sm font-bold">Loading login page...</p>
           </div>
         </main>
