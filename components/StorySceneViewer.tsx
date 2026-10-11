@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MemoryBook, BookPageMedia } from "@/components/MemoryBook";
 import { FlappyBirdScene } from "@/components/FlappyBirdScene";
@@ -567,11 +567,14 @@ export function StorySceneViewer({
   );
 
   const scene = scenes[activeIndex] ?? scenes[0];
-    const [viewportWidth, setViewportWidth] = useState(390);
+  const swipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(390);
+  const [viewportHeight, setViewportHeight] = useState(844);
 
   useEffect(() => {
     const updateViewportWidth = () => {
       setViewportWidth(window.innerWidth);
+      setViewportHeight(window.innerHeight);
     };
 
     updateViewportWidth();
@@ -643,12 +646,70 @@ export function StorySceneViewer({
       ? sceneBookPages[scene.id]
       : (scene.book?.currentPage ?? -1);
 
-      
+  // Tablet and desktop scenes use the editor's pixel positions. When the screen is smaller
+  // than the area the content covers, shrink the whole layout to fit instead of cutting it
+  // off. Screens that already fit keep a scale of 1, so those pages look exactly as before.
+  const visibleItems = scene.items.filter((item) =>
+    item.type === "text" ? Boolean(item.content) : Boolean(item.src),
+  );
+  const contentRight = Math.max(
+    0,
+    ...visibleItems.map((item) => item.x + item.w),
+    scene.book?.enabled ? scene.book.x + scene.book.w : 0,
+  );
+  const contentBottom = Math.max(
+    0,
+    ...visibleItems.map((item) => item.y + item.h),
+    // The album draws a header above its pages and page dots below them.
+    scene.book?.enabled ? scene.book.y + scene.book.h + 110 : 0,
+  );
+  const stageScale = Math.min(
+    1,
+    contentRight > 0 ? (viewportWidth - 16) / contentRight : 1,
+    contentBottom > 0 ? (viewportHeight - 16) / contentBottom : 1,
+  );
+  const stageStyle =
+    stageScale < 1
+      ? { transform: `scale(${stageScale})`, transformOrigin: "top left" }
+      : undefined;
+
+  // Phones: a sideways swipe moves between scenes. Left out on the two game scenes and on
+  // the album, where a finger moving across the screen is part of using them.
+  const swipeEnabled = !isGameScene && !isPuzzleScene;
 
   return (
     <section
       className="relative h-[100svh] w-full overflow-hidden"
       style={{ background: scene.background }}
+      onTouchStart={(e) => {
+        const touch = e.touches[0];
+        const onAlbum = (e.target as HTMLElement).closest("[data-no-swipe]");
+
+        swipeStartRef.current =
+          swipeEnabled && !onAlbum && e.touches.length === 1
+            ? { x: touch.clientX, y: touch.clientY, time: Date.now() }
+            : null;
+      }}
+      onTouchEnd={(e) => {
+        const start = swipeStartRef.current;
+        swipeStartRef.current = null;
+        if (!start) return;
+
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - start.x;
+        const dy = touch.clientY - start.y;
+
+        // A quick, mostly horizontal movement; anything else is a tap or a scroll.
+        if (
+          Math.abs(dx) < 60 ||
+          Math.abs(dx) < Math.abs(dy) * 2 ||
+          Date.now() - start.time > 700
+        ) {
+          return;
+        }
+
+        goToScene(dx < 0 ? activeIndex + 1 : activeIndex - 1);
+      }}
     >
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div
@@ -730,8 +791,13 @@ export function StorySceneViewer({
                 {scene.book?.enabled ? (
                   <>
                     {/* Desktop / tablet album */}
+                    <div
+                      className="absolute inset-0 z-[70] hidden sm:block"
+                      style={stageStyle}
+                    >
                     <motion.div
-                      className="absolute z-[70] hidden sm:block"
+                      data-no-swipe
+                      className="absolute"
                       style={{
                         left: scene.book.x,
                         top: scene.book.y,
@@ -761,10 +827,12 @@ export function StorySceneViewer({
                         }
                       />
                     </motion.div>
+                    </div>
 
 
 {/* Mobile album - full screen */}
 <motion.div
+data-no-swipe
 className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center justify-center px-3 sm:hidden"  initial={{ opacity: 0, y: 24, scale: 0.96 }}
   animate={{ opacity: 1, y: 0, scale: 1 }}
   exit={{ opacity: 0, y: -18, scale: 0.96 }}
@@ -791,7 +859,10 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
                 <div className="absolute inset-0 bg-black/10" />
 
                 {/* Desktop / tablet layout */}
-                <div className="hidden sm:block">
+                <div
+                  className="absolute inset-0 z-[20] hidden sm:block"
+                  style={stageStyle}
+                >
                   {scene.items.map((item, index) => (
                     <motion.div
                       key={item.id}
@@ -825,7 +896,7 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
                     >
                       {item.type === "text" ? (
                         <div
-                          className="whitespace-pre-wrap"
+                          className="scene-text whitespace-pre-wrap"
                           style={{
                             color: item.color || "#fff",
                             fontSize: item.fontSize || 24,
@@ -897,7 +968,7 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
         >
           {item.type === "text" ? (
             <div
-              className="whitespace-pre-wrap break-words text-center leading-tight"
+              className="scene-text whitespace-pre-wrap break-words text-center leading-tight"
               style={{
                 color: item.color || "#fff",
                 fontSize: `clamp(22px, ${
@@ -934,26 +1005,32 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
         </motion.div>
       </AnimatePresence>
 
-      <div className="absolute left-1/2 top-5 z-[95] flex -translate-x-1/2 gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur-md sm:top-6">
+      {/* The pill looks the same as before; each dot now sits in a finger-sized button */}
+      <div className="absolute left-1/2 top-[max(1.25rem,env(safe-area-inset-top))] z-[95] flex -translate-x-1/2 rounded-full border border-white/10 bg-black/20 px-2 backdrop-blur-md sm:top-6">
         {scenes.map((currentScene, index) => (
           <button
             key={currentScene.id}
             type="button"
             onClick={() => goToScene(index)}
-            className={`h-3 w-3 rounded-full transition ${
-              index === activeIndex ? "bg-pink-400" : "bg-white/30"
-            }`}
+            className="flex h-7 w-5 items-center justify-center"
             aria-label={`Open ${currentScene.name}`}
-          />
+            aria-current={index === activeIndex ? "true" : undefined}
+          >
+            <span
+              className={`h-3 w-3 rounded-full transition ${
+                index === activeIndex ? "bg-pink-400" : "bg-white/30"
+              }`}
+            />
+          </button>
         ))}
       </div>
 
-      <div className="absolute bottom-5 left-1/2 z-[95] flex w-full max-w-[360px] -translate-x-1/2 justify-center gap-3 px-4 sm:bottom-8 sm:left-auto sm:right-8 sm:w-auto sm:max-w-none sm:translate-x-0 sm:px-0">
+      <div className="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 z-[95] flex w-full max-w-[360px] -translate-x-1/2 justify-center gap-3 px-4 sm:bottom-8 sm:left-auto sm:right-8 sm:w-auto sm:max-w-none sm:translate-x-0 sm:px-0">
         {activeIndex > 0 ? (
           <button
             type="button"
             onClick={() => goToScene(activeIndex - 1)}
-            className="rounded-full border border-white/20 bg-black/30 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md transition hover:bg-black/45 sm:px-6 sm:text-sm"
+            className="min-h-[44px] rounded-full border border-white/20 bg-black/30 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md transition hover:bg-black/45 sm:px-6 sm:text-sm"
           >
             Previous
           </button>
@@ -963,7 +1040,7 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
           <button
             type="button"
             onClick={() => goToScene(activeIndex + 1)}
-            className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-xl transition hover:scale-[1.02] sm:px-6 sm:text-sm"
+            className="min-h-[44px] rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-xl transition hover:scale-[1.02] sm:px-6 sm:text-sm"
           >
             Next
           </button>
@@ -971,7 +1048,7 @@ className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center
           <button
             type="button"
             onClick={() => goToScene(0)}
-            className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-xl transition hover:scale-[1.02] sm:px-6 sm:text-sm"
+            className="min-h-[44px] rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-xl transition hover:scale-[1.02] sm:px-6 sm:text-sm"
           >
             Back to Start
           </button>

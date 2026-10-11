@@ -1,9 +1,25 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BookOpen,
+  Check,
+  Copy,
+  ExternalLink,
+  Image as ImageIcon,
+  ImagePlus,
+  Link2,
+  Loader2,
+  Send,
+  Smile,
+  Trash2,
+  Type,
+  X,
+} from "lucide-react";
 import { editorTemplates, EditorItem, EditorTemplate } from "@/lib/templates";
-import { LayoutEditor } from "@/components/LayoutEditor";
+import { DESIGN_WIDTH, LayoutEditor, STAGE_HEIGHT } from "@/components/LayoutEditor";
 import { BookPageMedia } from "@/components/MemoryBook";
+import { Logo } from "@/components/Logo";
 
 type AnimationType =
   | "none"
@@ -158,6 +174,7 @@ export function AdvancedCreateForm() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploads, setUploads] = useState(0);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const sceneBackgroundInputRef = useRef<HTMLInputElement | null>(null);
@@ -167,6 +184,40 @@ export function AdvancedCreateForm() {
   const bookCoverInputRef = useRef<HTMLInputElement | null>(null);
   const pendingBookSlotRef = useRef<number | null>(null);
   const puzzleImageInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Same upload as before, counted so the editor can show that a file is on its way.
+  const uploadWithProgress = async (file: File) => {
+    setUploads((count) => count + 1);
+
+    try {
+      return await uploadMedia(file);
+    } finally {
+      setUploads((count) => Math.max(0, count - 1));
+    }
+  };
+
+  const dialogOpen = showDetailsModal || Boolean(shareUrl);
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && showDetailsModal) {
+        setShowDetailsModal(false);
+        setError("");
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [dialogOpen, showDetailsModal]);
 
   const activeScene = scenes[activeSceneIndex] ?? scenes[0];
   const items = activeScene?.items ?? [];
@@ -327,7 +378,7 @@ export function AdvancedCreateForm() {
   };
 
   const handleSceneBackgroundUpload = async (file: File) => {
-    const result = await uploadMedia(file);
+    const result = await uploadWithProgress(file);
 
     updateScenes((current) =>
       current.map((scene, index) =>
@@ -348,7 +399,7 @@ export function AdvancedCreateForm() {
   const handleImageUploadToSpecific = async (imageId: string, file: File) => {
     if (isGameScene || isPuzzleScene) return;
 
-    const result = await uploadMedia(file);
+    const result = await uploadWithProgress(file);
     if (result.resourceType !== "image") {
       setError("Only images can be added to normal image boxes.");
       return;
@@ -387,7 +438,7 @@ export function AdvancedCreateForm() {
   const handleBookPageUpload = async (encodedSlotIndex: number, file: File) => {
     if (isGameScene || isPuzzleScene) return;
 
-    const result = await uploadMedia(file);
+    const result = await uploadWithProgress(file);
     if (!activeScene.book) return;
 
     const pageIndex = Math.floor(encodedSlotIndex / 10);
@@ -418,7 +469,7 @@ export function AdvancedCreateForm() {
   const handleBookCoverUpload = async (file: File) => {
     if (isGameScene || isPuzzleScene) return;
 
-    const result = await uploadMedia(file);
+    const result = await uploadWithProgress(file);
     if (result.resourceType !== "image") {
       setError("Only images can be used as the album cover.");
       return;
@@ -451,7 +502,7 @@ export function AdvancedCreateForm() {
   };
 
   const handlePuzzleImageUpload = async (file: File) => {
-    const result = await uploadMedia(file);
+    const result = await uploadWithProgress(file);
 
     if (result.resourceType !== "image") {
       setError("Only images can be used for the puzzle game.");
@@ -577,9 +628,91 @@ export function AdvancedCreateForm() {
     setCopied(true);
   };
 
+  const itemLabel = (item: EditorItem) => {
+    if (item.type === "image") return item.src ? "Photo" : "Empty image box";
+
+    const text = (item.content ?? "").replace(/\s+/g, " ").trim();
+    if (!text) return "Empty text";
+
+    return text.length > 22 ? `${text.slice(0, 22)}...` : text;
+  };
+
+  const sceneTag = (index: number) =>
+    index === 2 ? "Bird game" : index === 3 ? "Puzzle" : null;
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setError("");
+  };
+
+  const toolButton =
+    "flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:border-violet-200 hover:bg-violet-50";
+
+  const animationSelector = (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <label
+        htmlFor="animation-selector"
+        className="mb-2 block text-sm font-bold text-slate-800"
+      >
+        Animation selector
+      </label>
+      <select
+        id="animation-selector"
+        value={animation}
+        onChange={(e) => setAnimation(e.target.value as AnimationType)}
+        className="field"
+      >
+        <option value="none">No animation</option>
+        <option value="falling-hearts">Falling hearts</option>
+        <option value="falling-petals">Falling petals</option>
+        <option value="sparkle-hearts">Sparkle hearts</option>
+      </select>
+    </div>
+  );
+
   return (
-    <main className="min-h-screen bg-sky-100 text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-[1500px] flex-col px-4 py-4">
+    <main className="min-h-screen text-slate-900">
+      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[1500px] items-center justify-between gap-2 px-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Logo compact />
+            <span className="hidden border-l border-slate-200 pl-3 text-sm font-semibold text-slate-500 md:block">
+              Page editor
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setShowDetailsModal(true);
+              }}
+              className="btn btn-secondary px-4"
+            >
+              {detailsSaved ? (
+                <Check className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <Link2 className="h-4 w-4" />
+              )}
+              <span className="hidden min-[420px]:inline">Customize URL</span>
+              <span className="min-[420px]:hidden">URL</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={saving}
+              className="btn btn-primary px-4 sm:px-5"
+            >
+              <Send className="h-4 w-4" />
+              {saving ? "Publishing..." : "Publish"}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto flex max-w-[1500px] flex-col px-3 pb-28 pt-4 sm:px-4">
         <input
           ref={imageInputRef}
           type="file"
@@ -686,70 +819,77 @@ export function AdvancedCreateForm() {
           }}
         />
 
-        <div className="mb-4 rounded-[1.5rem] border border-sky-300/80 bg-sky-100/90 p-3 backdrop-blur-xl">
-          <div className="flex flex-wrap items-center gap-3">
-            {editorTemplates.map((tpl) => (
-              <button
-                key={tpl.id}
-                type="button"
-                onClick={() => handleTemplateSelect(tpl)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  tpl.id === template.id
-                    ? "bg-pink-500 text-white"
-                    : "bg-sky-100 text-slate-700 hover:bg-sky-200"
-                }`}
-              >
-                {tpl.name}
-              </button>
-            ))}
+        <div className="surface mb-4 space-y-2 p-3 sm:p-4">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <p className="shrink-0 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 sm:w-24">
+              Template
+            </p>
 
-            <div className="ml-auto flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setShowDetailsModal(true);
-                }}
-                className="rounded-full bg-sky-100 px-5 py-3 text-sm font-semibold text-slate-700"
-              >
-                Customize URL
-              </button>
+            {/* Chips scroll sideways on narrow screens instead of wrapping into several rows */}
+            <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 py-1">
+              {editorTemplates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => handleTemplateSelect(tpl)}
+                  aria-pressed={tpl.id === template.id}
+                  className={`min-h-[44px] shrink-0 rounded-full px-4 text-sm font-semibold transition ${
+                    tpl.id === template.id
+                      ? "bg-pink-500 text-white shadow-sm"
+                      : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {tpl.name}
+                </button>
+              ))}
+            </div>
+          </div>
 
-              <button
-                type="button"
-                onClick={handlePublish}
-                className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-sm font-semibold"
-              >
-                {saving ? "Publishing..." : "Publish"}
-              </button>
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <p className="shrink-0 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 sm:w-24">
+              Scene
+            </p>
+
+            <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 py-1">
+              {scenes.map((scene, index) => (
+                <button
+                  key={scene.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveSceneIndex(index);
+                    setSelectedId(null);
+                    setError("");
+                    setShowBookOptions(false);
+                  }}
+                  aria-pressed={index === activeSceneIndex}
+                  className={`flex min-h-[44px] shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold transition ${
+                    index === activeSceneIndex
+                      ? "bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-sm"
+                      : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {scene.name}
+                  {sceneTag(index) ? (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        index === activeSceneIndex
+                          ? "bg-white/25 text-white"
+                          : "bg-violet-100 text-violet-700"
+                      }`}
+                    >
+                      {sceneTag(index)}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-3 rounded-[1.5rem] border border-sky-300/80 bg-sky-100/90 p-3">
-          {scenes.map((scene, index) => (
-            <button
-              key={scene.id}
-              type="button"
-              onClick={() => {
-                setActiveSceneIndex(index);
-                setSelectedId(null);
-                setError("");
-                setShowBookOptions(false);
-              }}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                index === activeSceneIndex
-                  ? "bg-gradient-to-r from-pink-500 to-violet-600 text-white"
-                  : "bg-sky-100 text-slate-700 hover:bg-sky-200"
-              }`}
-            >
-              {scene.name}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid flex-1 gap-4 lg:grid-cols-[1fr_320px]">
-          <div className="overflow-hidden rounded-[1.75rem] border border-sky-300/80 bg-sky-100/90 p-4">
+        <div className="grid flex-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          {/* On upright phones and tablets the canvas stays pinned under the top bar, so changes
+              made with the tools below are visible as you make them. Zooming in releases it. */}
+          <div className="surface min-w-0 p-3 max-lg:bg-white/95 max-lg:portrait:sticky max-lg:portrait:top-[4.5rem] max-lg:portrait:z-30 max-lg:portrait:has-[[data-zoomed=true]]:static sm:p-4">
             <LayoutEditor
               key={activeScene.id}
               items={items}
@@ -781,32 +921,38 @@ export function AdvancedCreateForm() {
             />
           </div>
 
-          <div className="space-y-4 rounded-[1.75rem] border border-sky-300 bg-white/70 p-4 shadow-sm backdrop-blur">
+          <aside className="surface space-y-4 p-4 lg:sticky lg:top-20 lg:max-h-[calc(100svh-6rem)] lg:overflow-y-auto">
             <h2 className="text-lg font-bold">Editor tools</h2>
 
             {isPuzzleScene ? (
               <>
-                <div className="rounded-2xl border border-cyan-300 bg-cyan-50 p-4 text-sm font-medium leading-7 text-cyan-950 shadow-sm">
+                <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-medium leading-6 text-cyan-950">
                   Background 4 is reserved for the puzzle game. Upload one
-                  image, and it will be split into 8 pieces. The player has 1
-                  minute to rebuild it.
+                  image, and it will be split into 8 pieces for the player to
+                  rebuild before the timer runs out.
                 </div>
 
                 <button
                   type="button"
                   onClick={() => puzzleImageInputRef.current?.click()}
-                  className="w-full rounded-2xl bg-gradient-to-r from-cyan-100 to-blue-100 px-4 py-4 text-left text-sm font-medium text-slate-700 transition hover:from-cyan-200 hover:to-blue-200"
+                  className={toolButton}
                 >
+                  <ImagePlus className="h-4 w-4 shrink-0 text-violet-600" />
                   Upload puzzle image
                 </button>
 
-                <div className="rounded-2xl border border-sky-300/80 bg-sky-100/95 p-4">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <label
+                    htmlFor="puzzle-time-limit"
+                    className="mb-2 block text-sm font-bold text-slate-800"
+                  >
                     Puzzle time limit (seconds)
                   </label>
 
                   <input
+                    id="puzzle-time-limit"
                     type="number"
+                    inputMode="numeric"
                     min={30}
                     max={300}
                     step={10}
@@ -819,28 +965,33 @@ export function AdvancedCreateForm() {
                         ),
                       })
                     }
-                    className="w-full rounded-xl border border-sky-300 bg-sky-100 px-3 py-3 text-sm text-slate-800 outline-none"
+                    className="field"
                   />
                 </div>
               </>
             ) : isGameScene ? (
               <>
-                <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-medium leading-7 text-emerald-950 shadow-sm">
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium leading-6 text-emerald-950">
                   Background 3 is reserved for the full-screen bird game. Text
                   boxes, image boxes, and albums are disabled for this scene.
                 </div>
 
-                <div className="space-y-4 rounded-2xl border border-amber-300 bg-white p-5 shadow-sm">
-                  <h3 className="text-lg font-extrabold leading-8 text-slate-950">
+                <div className="space-y-3 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm">
+                  <label
+                    htmlFor="challenge-target"
+                    className="block text-base font-extrabold leading-6 text-slate-950"
+                  >
                     Challenge: How many pipes can you pass?
-                  </h3>
+                  </label>
 
-                  <p className="text-sm font-semibold leading-6 text-slate-700">
+                  <p className="text-sm font-medium leading-6 text-slate-600">
                     Enter a target number of pipes for the player to pass.
                   </p>
 
                   <input
+                    id="challenge-target"
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     step={1}
                     value={activeScene.gameChallengeTarget ?? ""}
@@ -848,10 +999,10 @@ export function AdvancedCreateForm() {
                       handleChallengeTargetChange(e.target.value)
                     }
                     placeholder="e.g. 30"
-                    className="w-full rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-200"
+                    className="field"
                   />
 
-                  <p className="text-sm font-medium leading-6 text-slate-600">
+                  <p className="text-sm leading-6 text-slate-500">
                     Example: If you enter 30, the mission is passed when the
                     score reaches 30.
                   </p>
@@ -860,96 +1011,254 @@ export function AdvancedCreateForm() {
                 <button
                   type="button"
                   onClick={() => sceneBackgroundInputRef.current?.click()}
-                  className="w-full rounded-2xl bg-gradient-to-r from-pink-100 to-violet-100 px-4 py-4 text-left text-sm font-medium text-slate-700 transition hover:from-pink-200 hover:to-violet-200"
+                  className={toolButton}
                 >
+                  <ImagePlus className="h-4 w-4 shrink-0 text-violet-600" />
                   Upload {activeScene.name.toLowerCase()} image
                 </button>
 
-                <div className="rounded-2xl border border-sky-300 bg-white/80 p-4 shadow-sm">
-                  <label className="mb-2 block text-sm font-bold text-slate-800">
-                    Animation selector
-                  </label>
-                  <select
-                    value={animation}
-                    onChange={(e) =>
-                      setAnimation(e.target.value as AnimationType)
-                    }
-                    className="w-full rounded-2xl border border-sky-300 bg-white p-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-200"
-                  >
-                    <option value="none">No animation</option>
-                    <option value="falling-hearts">Falling hearts</option>
-                    <option value="falling-petals">Falling petals</option>
-                    <option value="sparkle-hearts">Sparkle hearts</option>
-                  </select>
-                </div>
+                {animationSelector}
               </>
             ) : (
               <>
-                <div className="grid gap-3">
-                  <button
-                    type="button"
-                    onClick={addTextBlock}
-                    className="w-full rounded-2xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
-                  >
-                    + Add text
-                  </button>
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                    Add to scene
+                  </p>
 
-                  <button
-                    type="button"
-                    onClick={addEmojiBlock}
-                    className="w-full rounded-2xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
-                  >
-                    + Add emoji
-                  </button>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={addTextBlock}
+                      className="flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
+                    >
+                      <Type className="h-5 w-5 text-violet-600" />
+                      Text
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={addEmptyImageBlock}
-                    className="w-full rounded-2xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
-                  >
-                    + Add image box
-                  </button>
+                    <button
+                      type="button"
+                      onClick={addEmojiBlock}
+                      className="flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
+                    >
+                      <Smile className="h-5 w-5 text-violet-600" />
+                      Emoji
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={deleteSelected}
-                    className="w-full rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-left text-sm font-bold text-rose-700 shadow-sm transition hover:bg-rose-100 hover:text-rose-800"
-                  >
-                    Delete selected item
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => sceneBackgroundInputRef.current?.click()}
-                    className="w-full rounded-2xl bg-gradient-to-r from-pink-100 to-violet-100 px-4 py-4 text-left text-sm font-medium text-slate-700 transition hover:from-pink-200 hover:to-violet-200"
-                  >
-                    Upload {activeScene.name.toLowerCase()} image
-                  </button>
+                    <button
+                      type="button"
+                      onClick={addEmptyImageBlock}
+                      className="flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-violet-200 hover:bg-violet-50"
+                    >
+                      <ImagePlus className="h-5 w-5 text-violet-600" />
+                      Image box
+                    </button>
+                  </div>
                 </div>
 
-                <div className="rounded-2xl border border-sky-300 bg-white/80 p-4 shadow-sm">
-                  <label className="mb-2 block text-sm font-bold text-slate-800">
-                    Animation selector
-                  </label>
-                  <select
-                    value={animation}
-                    onChange={(e) =>
-                      setAnimation(e.target.value as AnimationType)
-                    }
-                    className="w-full rounded-2xl border border-sky-300 bg-white p-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-200"
-                  >
-                    <option value="none">No animation</option>
-                    <option value="falling-hearts">Falling hearts</option>
-                    <option value="falling-petals">Falling petals</option>
-                    <option value="sparkle-hearts">Sparkle hearts</option>
-                  </select>
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                    Items in this scene
+                  </p>
+
+                  {items.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {items.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setSelectedId(item.id)}
+                          aria-pressed={item.id === selectedId}
+                          className={`flex min-h-[44px] max-w-full items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition ${
+                            item.id === selectedId
+                              ? "border-pink-400 bg-pink-50 text-pink-700"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {item.type === "text" ? (
+                            <Type className="h-4 w-4 shrink-0" />
+                          ) : (
+                            <ImageIcon className="h-4 w-4 shrink-0" />
+                          )}
+                          <span className="truncate">{itemLabel(item)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-6 text-slate-500">
+                      Nothing here yet. Add text, an emoji, or an image box.
+                    </p>
+                  )}
                 </div>
 
-                <div className="space-y-3 rounded-2xl border border-sky-300/80 bg-sky-100/95 p-4">
-                  <div className="rounded-2xl border border-sky-300/80 bg-sky-100 p-3">
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                {selected ? (
+                  <div className="grid gap-3 rounded-2xl border border-pink-200 bg-pink-50/70 p-4">
+                    <p className="text-sm font-bold text-slate-900">
+                      {selected.type === "text"
+                        ? "Selected text block"
+                        : "Selected image box"}
+                    </p>
+
+                    {selected.type === "text" ? (
+                      <>
+                        <textarea
+                          aria-label="Text"
+                          value={selected.content ?? ""}
+                          onChange={(e) =>
+                            updateItem(selected.id, { content: e.target.value })
+                          }
+                          className="field min-h-24"
+                        />
+
+                        <label className="grid gap-2 text-sm font-medium text-slate-700">
+                          Font size
+                          <input
+                            type="range"
+                            min={16}
+                            max={72}
+                            value={selected.fontSize ?? 24}
+                            onChange={(e) =>
+                              updateItem(selected.id, {
+                                fontSize: Number(e.target.value),
+                              })
+                            }
+                            className="h-8 w-full accent-violet-600"
+                          />
+                        </label>
+
+                        <label className="flex items-center justify-between gap-3 text-sm font-medium text-slate-700">
+                          Color
+                          <input
+                            type="color"
+                            value={selected.color ?? "#ffffff"}
+                            onChange={(e) =>
+                              updateItem(selected.id, { color: e.target.value })
+                            }
+                            className="h-11 w-16 cursor-pointer rounded-lg border border-slate-200 bg-white p-1"
+                          />
+                        </label>
+
+                        <label className="grid gap-2 text-sm font-medium text-slate-700">
+                          Weight
+                          <input
+                            type="range"
+                            min={300}
+                            max={900}
+                            step={100}
+                            value={selected.fontWeight ?? 700}
+                            onChange={(e) =>
+                              updateItem(selected.id, {
+                                fontWeight: Number(e.target.value),
+                              })
+                            }
+                            className="h-8 w-full accent-violet-600"
+                          />
+                        </label>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          pendingImageIdRef.current = selected.id;
+                          imageInputRef.current?.click();
+                        }}
+                        className={toolButton}
+                      >
+                        <ImagePlus className="h-4 w-4 shrink-0 text-violet-600" />
+                        {selected.src ? "Replace photo" : "Upload photo"}
+                      </button>
+                    )}
+
+                    {/* Sliders do what dragging does, for when the canvas is too small to drag precisely */}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-pink-200 pt-3">
+                      <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                        Left / right
+                        <input
+                          type="range"
+                          min={0}
+                          max={Math.max(DESIGN_WIDTH - selected.w, selected.x)}
+                          value={Math.round(selected.x)}
+                          onChange={(e) =>
+                            updateItem(selected.id, { x: Number(e.target.value) })
+                          }
+                          className="h-8 w-full accent-violet-600"
+                        />
+                      </label>
+
+                      <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                        Up / down
+                        <input
+                          type="range"
+                          min={0}
+                          max={Math.max(STAGE_HEIGHT - selected.h, selected.y)}
+                          value={Math.round(selected.y)}
+                          onChange={(e) =>
+                            updateItem(selected.id, { y: Number(e.target.value) })
+                          }
+                          className="h-8 w-full accent-violet-600"
+                        />
+                      </label>
+
+                      <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                        Width
+                        <input
+                          type="range"
+                          min={Math.min(120, selected.w)}
+                          max={Math.max(DESIGN_WIDTH - selected.x, selected.w)}
+                          value={Math.round(selected.w)}
+                          onChange={(e) =>
+                            updateItem(selected.id, { w: Number(e.target.value) })
+                          }
+                          className="h-8 w-full accent-violet-600"
+                        />
+                      </label>
+
+                      <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                        Height
+                        <input
+                          type="range"
+                          min={Math.min(60, selected.h)}
+                          max={Math.max(STAGE_HEIGHT - selected.y, selected.h)}
+                          value={Math.round(selected.h)}
+                          onChange={(e) =>
+                            updateItem(selected.id, { h: Number(e.target.value) })
+                          }
+                          className="h-8 w-full accent-violet-600"
+                        />
+                      </label>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={deleteSelected}
+                      className="flex min-h-[44px] w-full items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-left text-sm font-bold text-rose-700 shadow-sm transition hover:bg-rose-50"
+                    >
+                      <Trash2 className="h-4 w-4 shrink-0" />
+                      Delete selected item
+                    </button>
+                  </div>
+                ) : items.length > 0 ? (
+                  <p className="rounded-2xl border border-dashed border-slate-300 bg-white/60 px-4 py-3 text-sm leading-6 text-slate-500">
+                    Tap an item above, or on the canvas, to edit, move, or delete it.
+                  </p>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => sceneBackgroundInputRef.current?.click()}
+                  className={toolButton}
+                >
+                  <ImagePlus className="h-4 w-4 shrink-0 text-violet-600" />
+                  Upload {activeScene.name.toLowerCase()} image
+                </button>
+
+                {animationSelector}
+
+                <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <label className="grid gap-2">
+                    <span className="text-sm font-bold text-slate-800">
                       Album title
-                    </label>
+                    </span>
                     <input
                       value={bookTitleInput}
                       onChange={(e) => {
@@ -959,16 +1268,18 @@ export function AdvancedCreateForm() {
                           updateActiveBook({ title: value });
                         }
                       }}
-                      className="w-full rounded-xl border border-sky-300 bg-sky-100/95 px-3 py-3 text-sm text-slate-800 outline-none"
+                      className="field"
                       placeholder="Our Album"
                     />
-                  </div>
+                  </label>
 
                   <button
                     type="button"
                     onClick={() => setShowBookOptions((prev) => !prev)}
-                    className="w-full rounded-2xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
+                    aria-expanded={showBookOptions}
+                    className={toolButton}
                   >
+                    <BookOpen className="h-4 w-4 shrink-0 text-violet-600" />
                     {activeScene.book?.enabled
                       ? "Edit album"
                       : `+ Add album to ${activeScene.name}`}
@@ -976,33 +1287,41 @@ export function AdvancedCreateForm() {
 
                   {showBookOptions ? (
                     <div className="grid gap-2">
-                      <button
-                        type="button"
-                        onClick={() => createBook(4)}
-                        className="w-full rounded-xl bg-sky-100 px-4 py-3 text-left text-sm text-slate-700"
-                      >
-                        4 pages
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => createBook(6)}
-                        className="w-full rounded-xl bg-sky-100 px-4 py-3 text-left text-sm text-slate-700"
-                      >
-                        6 pages
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => createBook(8)}
-                        className="w-full rounded-xl bg-sky-100 px-4 py-3 text-left text-sm text-slate-700"
-                      >
-                        8 pages
-                      </button>
+                      {activeScene.book?.enabled ? (
+                        <p className="text-xs leading-5 text-slate-500">
+                          Picking a size starts a new, empty album.
+                        </p>
+                      ) : null}
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => createBook(4)}
+                          className="min-h-[44px] rounded-xl border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-700 transition hover:bg-violet-50"
+                        >
+                          4 pages
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => createBook(6)}
+                          className="min-h-[44px] rounded-xl border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-700 transition hover:bg-violet-50"
+                        >
+                          6 pages
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => createBook(8)}
+                          className="min-h-[44px] rounded-xl border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-700 transition hover:bg-violet-50"
+                        >
+                          8 pages
+                        </button>
+                      </div>
 
                       {activeScene.book?.enabled ? (
                         <button
                           type="button"
                           onClick={removeBook}
-                          className="w-full rounded-xl bg-red-500/20 px-4 py-3 text-left text-sm text-red-200"
+                          className="min-h-[44px] w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-left text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
                         >
                           Remove album from this background
                         </button>
@@ -1010,210 +1329,230 @@ export function AdvancedCreateForm() {
                     </div>
                   ) : null}
 
-                  <div className="grid gap-3 rounded-2xl border border-sky-300/80 bg-sky-100 p-4">
-                    <button
-                      type="button"
-                      onClick={() => bookCoverInputRef.current?.click()}
-                      className="w-full rounded-xl bg-sky-100 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-sky-200"
-                    >
-                      Upload album cover image
-                    </button>
+                  {activeScene.book?.enabled ? (
+                    <div className="grid gap-3 border-t border-slate-100 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => bookCoverInputRef.current?.click()}
+                        className={toolButton}
+                      >
+                        <ImagePlus className="h-4 w-4 shrink-0 text-violet-600" />
+                        Upload album cover image
+                      </button>
 
-                    <label className="grid gap-2 text-sm text-slate-700">
-                      Cover image horizontal position
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={activeScene.book?.coverPositionX ?? 50}
-                        onChange={(e) =>
-                          updateActiveBook({
-                            coverPositionX: Number(e.target.value),
-                          })
-                        }
-                      />
-                    </label>
+                      <label className="grid gap-2 text-sm font-medium text-slate-700">
+                        Cover image horizontal position
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={activeScene.book?.coverPositionX ?? 50}
+                          onChange={(e) =>
+                            updateActiveBook({
+                              coverPositionX: Number(e.target.value),
+                            })
+                          }
+                          className="h-8 w-full accent-violet-600"
+                        />
+                      </label>
 
-                    <label className="grid gap-2 text-sm text-slate-700">
-                      Cover image vertical position
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={activeScene.book?.coverPositionY ?? 50}
-                        onChange={(e) =>
-                          updateActiveBook({
-                            coverPositionY: Number(e.target.value),
-                          })
-                        }
-                      />
-                    </label>
+                      <label className="grid gap-2 text-sm font-medium text-slate-700">
+                        Cover image vertical position
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={activeScene.book?.coverPositionY ?? 50}
+                          onChange={(e) =>
+                            updateActiveBook({
+                              coverPositionY: Number(e.target.value),
+                            })
+                          }
+                          className="h-8 w-full accent-violet-600"
+                        />
+                      </label>
+                    </div>
+                  ) : null}
 
-                    <p className="text-xs leading-6 text-slate-600">
-                      Album pages support 1 to 4 photos. Double click any photo
-                      box inside the album to upload.
-                    </p>
-                  </div>
+                  <p className="text-xs leading-5 text-slate-500">
+                    Album pages support 1 to 4 photos. Double-click, or tap
+                    twice, any photo box inside the album to upload.
+                  </p>
                 </div>
-
-                {selected?.type === "text" ? (
-                  <div className="grid gap-3 rounded-2xl border border-pink-500/20 bg-pink-500/10 p-4">
-                    <p className="font-semibold">Selected text block</p>
-
-                    <textarea
-                      value={selected.content ?? ""}
-                      onChange={(e) =>
-                        updateItem(selected.id, { content: e.target.value })
-                      }
-                      className="min-h-24 w-full rounded-2xl border border-sky-300 bg-sky-100/95 p-3 text-slate-800"
-                    />
-
-                    <label className="grid gap-2 text-sm text-slate-700">
-                      Font size
-                      <input
-                        type="range"
-                        min={16}
-                        max={72}
-                        value={selected.fontSize ?? 24}
-                        onChange={(e) =>
-                          updateItem(selected.id, {
-                            fontSize: Number(e.target.value),
-                          })
-                        }
-                      />
-                    </label>
-
-                    <label className="grid gap-2 text-sm text-slate-700">
-                      Color
-                      <input
-                        type="color"
-                        value={selected.color ?? "#ffffff"}
-                        onChange={(e) =>
-                          updateItem(selected.id, { color: e.target.value })
-                        }
-                      />
-                    </label>
-
-                    <label className="grid gap-2 text-sm text-slate-700">
-                      Weight
-                      <input
-                        type="range"
-                        min={300}
-                        max={900}
-                        step={100}
-                        value={selected.fontWeight ?? 700}
-                        onChange={(e) =>
-                          updateItem(selected.id, {
-                            fontWeight: Number(e.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
-                ) : null}
               </>
             )}
-
-            {error ? (
-              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200">
-                {error}
-              </div>
-            ) : null}
-          </div>
+          </aside>
         </div>
       </div>
 
+      {/* Upload progress and errors float above the page so they are seen wherever you have scrolled to */}
+      <div
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-[150] flex flex-col items-center gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
+        {uploads > 0 ? (
+          <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-xl">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Uploading...
+          </div>
+        ) : null}
+
+        {error && !showDetailsModal ? (
+          <div
+            role="alert"
+            className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-rose-200 bg-white p-4 text-sm font-semibold text-rose-700 shadow-xl"
+          >
+            <p className="min-w-0 flex-1 break-words leading-6">{error}</p>
+            <button
+              type="button"
+              onClick={() => setError("")}
+              aria-label="Dismiss"
+              className="-m-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-rose-500 transition hover:bg-rose-50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+
       {showDetailsModal ? (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-[2rem] border border-sky-300/80 bg-sky-100/95 p-6 shadow-2xl">
-            <p className="text-sm uppercase tracking-[0.3em] text-pink-500">
-              Customize URL
-            </p>
-            <h3 className="mt-3 text-3xl font-bold text-slate-900">
+        <div
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-slate-950/50 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={closeDetailsModal}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="details-title"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveDetails();
+            }}
+            className="max-h-[92svh] w-full max-w-xl overflow-y-auto rounded-t-[1.75rem] bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[2rem] sm:p-7"
+          >
+            <p className="eyebrow text-pink-600">Customize URL</p>
+            <h3
+              id="details-title"
+              className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl"
+            >
               Create a beautiful share link
             </h3>
 
-            <div className="mt-6 grid gap-4">
-              <input
-                value={recipient}
-                onChange={(e) => setRecipient(e.target.value)}
-                className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-4 text-slate-800"
-                placeholder="Recipient name"
-              />
+            <div className="mt-5 grid gap-4">
+              <label className="grid gap-2">
+                <span className="field-label">Recipient name</span>
+                <input
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  className="field"
+                  placeholder="Recipient name"
+                />
+              </label>
 
-              <input
-                value={occasion}
-                onChange={(e) => setOccasion(e.target.value)}
-                className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-4 text-slate-800"
-                placeholder="Occasion (Birthday, Valentine, Anniversary...)"
-              />
+              <label className="grid gap-2">
+                <span className="field-label">Occasion</span>
+                <input
+                  value={occasion}
+                  onChange={(e) => setOccasion(e.target.value)}
+                  className="field"
+                  placeholder="Birthday, Valentine, Anniversary..."
+                />
+              </label>
 
-              <input
-                value={sender}
-                onChange={(e) => setSender(e.target.value)}
-                className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-4 text-slate-800"
-                placeholder="From name"
-              />
+              <label className="grid gap-2">
+                <span className="field-label">From name</span>
+                <input
+                  value={sender}
+                  onChange={(e) => setSender(e.target.value)}
+                  className="field"
+                  placeholder="From name"
+                />
+              </label>
 
-              <input
-                value={customKeyword}
-                onChange={(e) => setCustomKeyword(e.target.value)}
-                className="w-full rounded-2xl border border-sky-300 bg-sky-100 p-4 text-slate-800"
-                placeholder="Optional custom keyword"
-              />
+              <label className="grid gap-2">
+                <span className="field-label">
+                  Custom keyword{" "}
+                  <span className="font-normal text-slate-400">(optional)</span>
+                </span>
+                <input
+                  value={customKeyword}
+                  onChange={(e) => setCustomKeyword(e.target.value)}
+                  className="field"
+                  placeholder="Optional custom keyword"
+                />
+              </label>
 
-              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-                <p className="text-xs uppercase tracking-[0.25em] text-emerald-200">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
                   URL preview
                 </p>
-                <p className="mt-2 break-all text-sm text-emerald-100">
+                <p className="mt-2 break-all text-sm font-semibold text-emerald-900">
                   /{urlPreview || "your-custom-link"}
                 </p>
               </div>
+
+              {error ? (
+                <p role="alert" className="notice notice-error">
+                  {error}
+                </p>
+              ) : null}
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={() => setShowDetailsModal(false)}
-                className="rounded-full bg-sky-200 px-5 py-3 text-sm font-semibold text-slate-700"
+                onClick={closeDetailsModal}
+                className="btn btn-secondary"
               >
                 Close
               </button>
 
-              <button
-                type="button"
-                onClick={handleSaveDetails}
-                className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 text-sm font-semibold text-white"
-              >
+              <button type="submit" className="btn btn-primary">
                 Save Details
               </button>
             </div>
-          </div>
+          </form>
         </div>
       ) : null}
 
       {shareUrl ? (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-[2rem] border border-sky-300/70 bg-sky-100/95 p-6 shadow-2xl">
-            <p className="text-center text-sm uppercase tracking-[0.3em] text-emerald-200">
+        <div
+          className="fixed inset-0 z-[220] flex items-end justify-center bg-slate-950/50 backdrop-blur-sm sm:items-center sm:p-4"
+        >
+          {/* No close-on-outside-tap here: this dialog is the only place the new link is shown */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="share-title"
+            className="max-h-[92svh] w-full max-w-xl overflow-y-auto rounded-t-[1.75rem] bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[2rem] sm:p-7"
+          >
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <Check className="h-6 w-6" />
+            </div>
+
+            <p className="eyebrow mt-4 text-center text-emerald-700">
               Ready to share
             </p>
 
-            <h3 className="mt-3 text-center text-3xl font-bold text-slate-900">
+            <h3
+              id="share-title"
+              className="mt-2 text-center text-2xl font-extrabold text-slate-900 sm:text-3xl"
+            >
               Your URL is ready
             </h3>
 
-            <div className="mt-6 break-all rounded-2xl border border-sky-300/80 bg-sky-100 p-4 text-center text-sm text-emerald-700">
+            <div className="mt-5 break-all rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-semibold text-emerald-900">
               {shareUrl}
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={copyUrl}
-                className="rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white"
+                className="btn bg-emerald-600 text-white hover:bg-emerald-700"
               >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Copied" : "Copy URL"}
               </button>
 
@@ -1221,15 +1560,16 @@ export function AdvancedCreateForm() {
                 href={shareUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full bg-sky-100 px-5 py-3 text-sm font-semibold text-slate-700"
+                className="btn btn-secondary"
               >
+                <ExternalLink className="h-4 w-4" />
                 Open page
               </a>
 
               <button
                 type="button"
                 onClick={() => setShareUrl("")}
-                className="rounded-full bg-sky-100 px-5 py-3 text-sm font-semibold text-slate-700"
+                className="btn btn-secondary"
               >
                 Close
               </button>

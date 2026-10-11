@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Move, ZoomIn, ZoomOut } from "lucide-react";
 import { EditorItem } from "@/lib/templates";
 import { MemoryBook, BookPageMedia } from "@/components/MemoryBook";
 import { FlappyBirdScene } from "@/components/FlappyBirdScene";
@@ -114,6 +115,12 @@ type BackgroundPanState =
       containerH: number;
     }
   | null;
+
+// Scenes are laid out in pixels. Below this width the canvas keeps the design size and is
+// scaled down to fit, so narrow screens show the whole scene instead of its left edge.
+export const DESIGN_WIDTH = 1000;
+export const STAGE_HEIGHT = 760;
+const DOUBLE_TAP_MS = 350;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -628,6 +635,10 @@ export function LayoutEditor({
   onBackgroundPositionChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const lastTapRef = useRef<{ id: string; time: number } | null>(null);
+  const [frameWidth, setFrameWidth] = useState<number | null>(null);
+  const [zoomed, setZoomed] = useState(false);
   const [dragState, setDragState] = useState<DragState>(null);
   const [resizeState, setResizeState] = useState<ResizeState>(null);
   const [panState, setPanState] = useState<PanState>(null);
@@ -635,23 +646,44 @@ export function LayoutEditor({
     useState<BackgroundPanState>(null);
   const [isBackgroundMoveMode, setIsBackgroundMoveMode] = useState(false);
 
+  const fitsDesign = frameWidth === null || frameWidth >= DESIGN_WIDTH;
+  const fitScale = fitsDesign ? 1 : (frameWidth as number) / DESIGN_WIDTH;
+  const scale = zoomed ? Math.min(1, fitScale * 2) : fitScale;
+
   const updateItem = (id: string, patch: Partial<EditorItem>) => {
     onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   };
 
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    const measure = () => setFrameWidth(frame.clientWidth);
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     if (isGameScene || isPuzzleScene) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       const container = containerRef.current;
       if (!container) return;
+
+      // Pointer distances are in screen pixels; the canvas may be scaled down.
+      const moveX = (startX: number) => Math.round((e.clientX - startX) / scale);
+      const moveY = (startY: number) => Math.round((e.clientY - startY) / scale);
 
       if (dragState?.kind === "item") {
         const item = items.find((x) => x.id === dragState.id);
         if (!item) return;
 
-        const dx = e.clientX - dragState.startX;
-        const dy = e.clientY - dragState.startY;
+        const dx = moveX(dragState.startX);
+        const dy = moveY(dragState.startY);
 
         const nextX = Math.max(
           0,
@@ -666,8 +698,8 @@ export function LayoutEditor({
       }
 
       if (dragState?.kind === "book" && book && onBookChange) {
-        const dx = e.clientX - dragState.startX;
-        const dy = e.clientY - dragState.startY;
+        const dx = moveX(dragState.startX);
+        const dy = moveY(dragState.startY);
 
         const nextX = Math.max(
           0,
@@ -684,8 +716,8 @@ export function LayoutEditor({
       if (resizeState?.kind === "item") {
         const minWidth = 120;
         const minHeight = 60;
-        const dx = e.clientX - resizeState.startX;
-        const dy = e.clientY - resizeState.startY;
+        const dx = moveX(resizeState.startX);
+        const dy = moveY(resizeState.startY);
 
         const nextW = Math.max(
           minWidth,
@@ -702,8 +734,8 @@ export function LayoutEditor({
       if (resizeState?.kind === "book" && book && onBookChange) {
         const minWidth = 360;
         const minHeight = 240;
-        const dx = e.clientX - resizeState.startX;
-        const dy = e.clientY - resizeState.startY;
+        const dx = moveX(resizeState.startX);
+        const dy = moveY(resizeState.startY);
 
         const nextW = Math.max(
           minWidth,
@@ -718,8 +750,8 @@ export function LayoutEditor({
       }
 
       if (panState) {
-        const dx = e.clientX - panState.startX;
-        const dy = e.clientY - panState.startY;
+        const dx = moveX(panState.startX);
+        const dy = moveY(panState.startY);
 
         const nextPositionX = clamp(
           panState.startPositionX - (dx / Math.max(panState.itemW, 1)) * 100,
@@ -740,8 +772,8 @@ export function LayoutEditor({
       }
 
       if (backgroundPanState && onBackgroundPositionChange) {
-        const dx = e.clientX - backgroundPanState.startX;
-        const dy = e.clientY - backgroundPanState.startY;
+        const dx = moveX(backgroundPanState.startX);
+        const dy = moveY(backgroundPanState.startY);
 
         const nextPositionX = clamp(
           backgroundPanState.startPositionX -
@@ -764,19 +796,21 @@ export function LayoutEditor({
       }
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       setDragState(null);
       setResizeState(null);
       setPanState(null);
       setBackgroundPanState(null);
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, [
     dragState,
@@ -789,13 +823,37 @@ export function LayoutEditor({
     onBackgroundPositionChange,
     isGameScene,
     isPuzzleScene,
+    scale,
   ]);
+
+  // Touch screens have no reliable double-click, so two quick taps on an image box count as one.
+  const handleImageTap = (id: string, pointerType: string) => {
+    if (pointerType === "mouse") return;
+
+    const now = Date.now();
+    const last = lastTapRef.current;
+
+    if (last && last.id === id && now - last.time < DOUBLE_TAP_MS) {
+      lastTapRef.current = { id: "", time: now };
+      onImageClick?.(id);
+      return;
+    }
+
+    lastTapRef.current = { id, time: now };
+  };
+
+  // Some browsers also send a double-click after two taps; do not open the picker twice.
+  const openedByTapJustNow = () => {
+    const last = lastTapRef.current;
+    return Boolean(last && last.id === "" && Date.now() - last.time < 800);
+  };
 
   if (isGameScene) {
     return (
       <div
         ref={containerRef}
-className="relative isolate z-0 mx-auto h-[760px] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"      >
+        className="relative isolate z-0 mx-auto h-[min(760px,82svh)] min-h-[520px] w-full overflow-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem]"
+      >
         <FlappyBirdScene />
       </div>
     );
@@ -805,7 +863,8 @@ className="relative isolate z-0 mx-auto h-[760px] w-full overflow-hidden rounded
     return (
       <div
         ref={containerRef}
-className="relative isolate z-0 mx-auto h-[760px] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"      >
+        className="relative isolate z-0 mx-auto h-[min(760px,82svh)] min-h-[520px] w-full overflow-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem]"
+      >
         <PuzzleGameScene
           imageUrl={puzzleImage}
           timeLimitSeconds={puzzleTimeLimit}
@@ -814,225 +873,293 @@ className="relative isolate z-0 mx-auto h-[760px] w-full overflow-hidden rounded
     );
   }
 
+  // Handles and hints are drawn inside the scaled canvas, so grow them back to a usable size.
+  const handleSize = scale === 1 ? 24 : Math.min(120, Math.round(32 / scale));
+  const outlineWidth = Math.min(6, 2 / scale);
+  const hintFontSize = Math.min(34, Math.round(14 / scale));
+
   return (
-    <div
-      ref={containerRef}
-className="relative isolate z-0 mx-auto h-[760px] w-full overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950"      style={{ background }}
-      onMouseDown={() => onSelect(null)}
-    >
-      <Romantic3DStyles />
+    <div data-zoomed={zoomed && !fitsDesign ? "true" : undefined}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 sm:mb-3">
+        <p className="hidden text-xs font-medium leading-5 text-slate-500 sm:block">
+          Drag to move, pull the pink corner to resize.
+        </p>
 
-      {coverImage ? (
-        <>
-          <img
-            src={coverImage}
-            alt="Editor background"
-            className="absolute inset-0 z-0 h-full w-full object-cover"
-            style={{
-              objectPosition: `${backgroundPositionX}% ${backgroundPositionY}%`,
-              cursor: isBackgroundMoveMode ? "grabbing" : "default",
-            }}
-            draggable={false}
-            onMouseDown={(e) => {
-              if (!isBackgroundMoveMode || !onBackgroundPositionChange || !containerRef.current) {
-                return;
-              }
-
-              e.stopPropagation();
-              setBackgroundPanState({
-                startX: e.clientX,
-                startY: e.clientY,
-                startPositionX: backgroundPositionX,
-                startPositionY: backgroundPositionY,
-                containerW: containerRef.current.clientWidth,
-                containerH: containerRef.current.clientHeight,
-              });
-            }}
-          />
-          <div className="absolute inset-0 z-0 bg-slate-950/40" />
-        </>
-      ) : null}
-
-      {animation === "falling-hearts" ? <FallingDecorLayer type="falling-hearts" /> : null}
-      {animation === "falling-petals" ? <FallingDecorLayer type="falling-petals" /> : null}
-      {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
-
-      {coverImage ? (
-        <div className="absolute left-6 top-6 z-[30] flex items-center gap-3">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsBackgroundMoveMode((prev) => !prev);
-            }}
-            className={`rounded-full px-4 py-2 text-sm font-semibold shadow-lg transition ${
-              isBackgroundMoveMode
-                ? "bg-pink-500 text-white"
-                : "bg-black/55 text-white backdrop-blur-md"
-            }`}
-          >
-            {isBackgroundMoveMode ? "Stop moving background" : "Drag background to adjust focus"}
-          </button>
-        </div>
-      ) : null}
-
-      {items
-        .slice()
-        .sort((a, b) => a.z - b.z)
-        .map((item) => {
-          const isSelected = selectedId === item.id;
-
-          return (
-            <div
-              key={item.id}
-              className={`absolute z-[10] ${item.type === "image" ? "overflow-hidden" : ""}`}
-              style={{
-                left: item.x,
-                top: item.y,
-                width: item.w,
-                height: item.h,
-              }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                onSelect(item.id);
-                setDragState({
-                  kind: "item",
-                  id: item.id,
-                  startX: e.clientX,
-                  startY: e.clientY,
-                  itemX: item.x,
-                  itemY: item.y,
-                });
-              }}
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                if (item.type === "image") {
-                  onImageClick?.(item.id);
-                }
-              }}
+        <div className="flex flex-wrap items-center gap-2">
+          {coverImage ? (
+            <button
+              type="button"
+              onClick={() => setIsBackgroundMoveMode((prev) => !prev)}
+              aria-pressed={isBackgroundMoveMode}
+              className={`btn min-h-[40px] px-4 text-xs ${
+                isBackgroundMoveMode ? "btn-primary" : "btn-secondary"
+              }`}
             >
-              {item.type === "text" ? (
-                <div
-                  className="h-full w-full whitespace-pre-wrap rounded-2xl px-2 py-1"
-                  style={{
-                    fontSize: item.fontSize ?? 24,
-                    color: item.color ?? "#ffffff",
-                    fontWeight: item.fontWeight ?? 700,
-                    textShadow: "0 6px 30px rgba(0,0,0,0.35)",
-                  }}
-                >
-                  {item.content}
-                </div>
-              ) : item.src ? (
-                <img
-                  src={item.src}
-                  alt="Editor block"
-                  className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
-                  style={{
-                    objectPosition: `${item.imagePositionX ?? 50}% ${item.imagePositionY ?? 50}%`,
-                  }}
-                  draggable={false}
-                  onMouseDown={(e) => {
-                    if (!isSelected || !item.src) return;
+              <Move className="h-4 w-4" />
+              {isBackgroundMoveMode ? "Stop moving background" : "Drag background to adjust focus"}
+            </button>
+          ) : null}
 
+          {!fitsDesign ? (
+            <button
+              type="button"
+              onClick={() => setZoomed((prev) => !prev)}
+              aria-pressed={zoomed}
+              className="btn btn-secondary min-h-[40px] px-4 text-xs"
+            >
+              {zoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
+              {zoomed ? "Fit to screen" : "Zoom in"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div
+        ref={frameRef}
+        className={`relative w-full overflow-y-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem] ${
+          zoomed ? "overflow-x-auto" : "overflow-x-hidden"
+        }`}
+        style={{ height: Math.round(STAGE_HEIGHT * scale) }}
+      >
+        <div
+          ref={containerRef}
+          className="relative isolate z-0 overflow-hidden"
+          style={{
+            background,
+            width: fitsDesign ? "100%" : DESIGN_WIDTH,
+            height: STAGE_HEIGHT,
+            transform: scale === 1 ? undefined : `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+          onPointerDown={() => onSelect(null)}
+        >
+          <Romantic3DStyles />
+
+          {coverImage ? (
+            <>
+              <img
+                src={coverImage}
+                alt="Editor background"
+                className={`absolute inset-0 z-0 h-full w-full object-cover ${
+                  isBackgroundMoveMode ? "touch-none" : ""
+                }`}
+                style={{
+                  objectPosition: `${backgroundPositionX}% ${backgroundPositionY}%`,
+                  cursor: isBackgroundMoveMode ? "grabbing" : "default",
+                }}
+                draggable={false}
+                onPointerDown={(e) => {
+                  if (!isBackgroundMoveMode || !onBackgroundPositionChange || !containerRef.current) {
+                    return;
+                  }
+
+                  e.stopPropagation();
+                  setBackgroundPanState({
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    startPositionX: backgroundPositionX,
+                    startPositionY: backgroundPositionY,
+                    containerW: containerRef.current.clientWidth,
+                    containerH: containerRef.current.clientHeight,
+                  });
+                }}
+              />
+              <div className="pointer-events-none absolute inset-0 z-0 bg-slate-950/40" />
+            </>
+          ) : null}
+
+          {animation === "falling-hearts" ? <FallingDecorLayer type="falling-hearts" /> : null}
+          {animation === "falling-petals" ? <FallingDecorLayer type="falling-petals" /> : null}
+          {animation === "sparkle-hearts" ? <SparkleHeartsLayer /> : null}
+
+          {items
+            .slice()
+            .sort((a, b) => a.z - b.z)
+            .map((item) => {
+              const isSelected = selectedId === item.id;
+
+              return (
+                <div
+                  key={item.id}
+                  className={`absolute z-[10] touch-none ${item.type === "image" ? "overflow-hidden" : ""} ${
+                    isBackgroundMoveMode ? "pointer-events-none" : ""
+                  }`}
+                  style={{
+                    left: item.x,
+                    top: item.y,
+                    width: item.w,
+                    height: item.h,
+                  }}
+                  onPointerDown={(e) => {
                     e.stopPropagation();
-                    setPanState({
+                    onSelect(item.id);
+                    setDragState({
+                      kind: "item",
                       id: item.id,
                       startX: e.clientX,
                       startY: e.clientY,
-                      startPositionX: item.imagePositionX ?? 50,
-                      startPositionY: item.imagePositionY ?? 50,
-                      itemW: item.w,
-                      itemH: item.h,
+                      itemX: item.x,
+                      itemY: item.y,
                     });
                   }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center rounded-[1.75rem] border border-dashed border-white/30 bg-black/20 text-center text-sm text-white/70">
-                  Double click to add image
+                  onPointerUp={(e) => {
+                    if (item.type === "image") {
+                      handleImageTap(item.id, e.pointerType);
+                    }
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if (item.type === "image" && !openedByTapJustNow()) {
+                      onImageClick?.(item.id);
+                    }
+                  }}
+                >
+                  {item.type === "text" ? (
+                    <div
+                      className="scene-text h-full w-full whitespace-pre-wrap rounded-2xl px-2 py-1"
+                      style={{
+                        fontSize: item.fontSize ?? 24,
+                        color: item.color ?? "#ffffff",
+                        fontWeight: item.fontWeight ?? 700,
+                        textShadow: "0 6px 30px rgba(0,0,0,0.35)",
+                      }}
+                    >
+                      {item.content}
+                    </div>
+                  ) : item.src ? (
+                    <img
+                      src={item.src}
+                      alt="Editor block"
+                      className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+                      style={{
+                        objectPosition: `${item.imagePositionX ?? 50}% ${item.imagePositionY ?? 50}%`,
+                      }}
+                      draggable={false}
+                      onPointerDown={(e) => {
+                        if (!isSelected || !item.src) return;
+
+                        e.stopPropagation();
+                        setPanState({
+                          id: item.id,
+                          startX: e.clientX,
+                          startY: e.clientY,
+                          startPositionX: item.imagePositionX ?? 50,
+                          startPositionY: item.imagePositionY ?? 50,
+                          itemW: item.w,
+                          itemH: item.h,
+                        });
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="flex h-full w-full items-center justify-center rounded-[1.75rem] border border-dashed border-white/30 bg-black/20 px-4 text-center text-white/70"
+                      style={{ fontSize: hintFontSize, lineHeight: 1.3 }}
+                    >
+                      Double-click or tap twice to add image
+                    </div>
+                  )}
+
+                  {isSelected ? (
+                    <>
+                      <div
+                        className="pointer-events-none absolute inset-0 rounded-[1.75rem] border-pink-400"
+                        style={{ borderWidth: outlineWidth, borderStyle: "solid" }}
+                      />
+                      <button
+                        type="button"
+                        aria-label="Resize"
+                        className="absolute z-[12] touch-none rounded-full border-2 border-white bg-pink-500 shadow-lg"
+                        style={{
+                          width: handleSize,
+                          height: handleSize,
+                          right: item.type === "image" ? 0 : -handleSize / 2,
+                          bottom: item.type === "image" ? 0 : -handleSize / 2,
+                        }}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          setResizeState({
+                            kind: "item",
+                            id: item.id,
+                            startX: e.clientX,
+                            startY: e.clientY,
+                            itemW: item.w,
+                            itemH: item.h,
+                            itemX: item.x,
+                            itemY: item.y,
+                          });
+                        }}
+                      />
+                    </>
+                  ) : null}
                 </div>
-              )}
+              );
+            })}
 
-              {isSelected ? (
-                <>
-                  <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] border-2 border-pink-400" />
-                  <button
-                    type="button"
-                    className="absolute -bottom-3 -right-3 z-[12] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      setResizeState({
-                        kind: "item",
-                        id: item.id,
-                        startX: e.clientX,
-                        startY: e.clientY,
-                        itemW: item.w,
-                        itemH: item.h,
-                        itemX: item.x,
-                        itemY: item.y,
-                      });
-                    }}
-                  />
-                </>
-              ) : null}
+          {book?.enabled ? (
+            <div
+              className={`absolute z-[20] touch-none ${
+                isBackgroundMoveMode ? "pointer-events-none" : ""
+              }`}
+              style={{
+                left: book.x,
+                top: book.y,
+                width: book.w,
+                height: book.h,
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onSelect(null);
+                setDragState({
+                  kind: "book",
+                  startX: e.clientX,
+                  startY: e.clientY,
+                  itemX: book.x,
+                  itemY: book.y,
+                });
+              }}
+            >
+              <MemoryBook
+                pageCount={book.pageCount}
+                pages={book.pages}
+                editable
+                currentPage={book.currentPage}
+                onCurrentPageChange={onBookFlip}
+                onUploadPage={onBookPageDoubleClick}
+                width={book.w}
+                height={book.h}
+                coverImage={book.coverImage || coverImage}
+                coverPositionX={book.coverPositionX ?? 50}
+                coverPositionY={book.coverPositionY ?? 50}
+                title={book.title}
+              />
+
+              <button
+                type="button"
+                aria-label="Resize album"
+                className="absolute z-[21] touch-none rounded-full border-2 border-white bg-pink-500 shadow-lg"
+                style={{
+                  width: handleSize,
+                  height: handleSize,
+                  right: -handleSize / 2,
+                  bottom: -handleSize / 2,
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  setResizeState({
+                    kind: "book",
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    itemW: book.w,
+                    itemH: book.h,
+                    itemX: book.x,
+                    itemY: book.y,
+                  });
+                }}
+              />
             </div>
-          );
-        })}
-
-      {book?.enabled ? (
-        <div
-          className="absolute z-[20]"
-          style={{
-            left: book.x,
-            top: book.y,
-            width: book.w,
-            height: book.h,
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            onSelect(null);
-            setDragState({
-              kind: "book",
-              startX: e.clientX,
-              startY: e.clientY,
-              itemX: book.x,
-              itemY: book.y,
-            });
-          }}
-        >
-          <MemoryBook
-            pageCount={book.pageCount}
-            pages={book.pages}
-            editable
-            currentPage={book.currentPage}
-            onCurrentPageChange={onBookFlip}
-            onUploadPage={onBookPageDoubleClick}
-            width={book.w}
-            height={book.h}
-            coverImage={book.coverImage || coverImage}
-            coverPositionX={book.coverPositionX ?? 50}
-            coverPositionY={book.coverPositionY ?? 50}
-            title={book.title}
-          />
-
-          <button
-            type="button"
-            className="absolute -bottom-3 -right-3 z-[21] h-6 w-6 rounded-full border-2 border-white bg-pink-500 shadow-lg"
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              setResizeState({
-                kind: "book",
-                startX: e.clientX,
-                startY: e.clientY,
-                itemW: book.w,
-                itemH: book.h,
-                itemX: book.x,
-                itemY: book.y,
-              });
-            }}
-          />
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

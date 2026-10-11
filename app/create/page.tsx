@@ -20,8 +20,8 @@ export default function CreatePage() {
 
   if (!ready) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-6">
-        <div className="rounded-3xl border border-sky-400/80 bg-sky-100/90 px-6 py-4 text-sm font-medium text-slate-700">
+      <main className="flex min-h-screen items-center justify-center px-4">
+        <div className="surface px-6 py-4 text-sm font-semibold text-slate-700">
           Checking your account...
         </div>
       </main>
