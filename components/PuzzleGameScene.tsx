@@ -188,14 +188,14 @@ export function PuzzleGameScene({
       </div>
 
       {/* add this new one */}
-      <div className="absolute right-4 top-4 z-[90] flex items-center gap-3 rounded-full border border-white/10 bg-white/90 px-5 py-3 text-slate-900 shadow-xl md:right-6">
+      <div className="absolute right-4 top-16 z-[90] flex items-center gap-3 rounded-full border border-white/10 bg-white/90 px-5 py-2.5 text-slate-900 shadow-xl sm:top-4 sm:py-3 md:right-6">
         <div className="text-xs font-bold uppercase tracking-[0.32em] text-slate-500">
           Time Left
         </div>
         <div className="text-3xl font-black leading-none">{timeLeft}s</div>
       </div>
 
-      <div className="absolute inset-0 overflow-y-auto px-4 pb-6 pt-24 md:px-6 md:pb-8 md:pt-28">
+      <div className="absolute inset-0 overflow-y-auto px-4 pb-24 pt-32 sm:pt-24 md:px-6 md:pt-28 lg:pb-8">
         <div className="mx-auto grid max-w-[1180px] gap-4 lg:grid-cols-[1.25fr_0.75fr]">
           <div className="rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur-xl">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

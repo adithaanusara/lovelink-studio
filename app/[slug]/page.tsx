@@ -76,44 +76,43 @@ export default async function MemoryPage({
   );
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-sky-100 text-slate-900">
+    <main className="min-h-screen w-full overflow-x-hidden text-slate-900">
       {storyScenes && storyScenes.length > 0 ? (
         <StorySceneViewer scenes={storyScenes} animation={animation} />
       ) : (
-        <section className="mx-auto flex min-h-screen max-w-[1400px] items-center justify-center px-6 text-center">
-          <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/90 p-10 text-slate-700">
+        <section className="mx-auto flex min-h-screen max-w-[1400px] items-center justify-center px-4 text-center">
+          <div className="surface p-8 text-slate-700 sm:p-10">
             This page has no scene data.
           </div>
         </section>
       )}
 
       {(project.musicUrl || project.gallery.length > 0) && (
-        <section className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 px-6 py-12 md:px-10">
+        <section className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 pb-[max(3rem,env(safe-area-inset-bottom))] pt-10 sm:gap-8 sm:px-6 md:px-10">
           {project.musicUrl ? (
-            <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/90 p-6 backdrop-blur-md">
-              <div className="mb-4 flex items-center gap-3 text-sky-800">
+            <div className="surface p-4 sm:p-6">
+              <div className="mb-4 flex items-center gap-3 text-violet-700">
                 <Music4 className="h-5 w-5" />
-                <p className="text-sm uppercase tracking-[0.3em]">Song for this page</p>
+                <p className="eyebrow">Song for this page</p>
               </div>
               <audio controls className="w-full" src={project.musicUrl} />
             </div>
           ) : null}
 
           {project.gallery.length > 0 ? (
-            <div className="rounded-[2rem] border border-sky-400/80 bg-sky-100/90 p-6 backdrop-blur-md">
-              <p className="mb-5 text-sm uppercase tracking-[0.3em] text-sky-800">
-                Gallery memories
-              </p>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="surface p-4 sm:p-6">
+              <p className="eyebrow mb-5">Gallery memories</p>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
                 {project.gallery.map((image) => (
                   <div
                     key={image.id}
-                    className="overflow-hidden rounded-[1.5rem] border border-sky-300/80 bg-sky-100/85"
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 sm:rounded-[1.5rem]"
                   >
                     <img
                       src={image.imageUrl}
                       alt={image.altText || "Gallery memory"}
-                      className="h-56 w-full object-cover sm:h-72"
+                      loading="lazy"
+                      className="aspect-square w-full object-cover sm:aspect-[4/3]"
                     />
                   </div>
                 ))}

@@ -14,7 +14,8 @@ html {
   scroll-behavior: smooth;
   width: 100%;
   min-height: 100%;
-  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -22,20 +23,17 @@ body {
   margin: 0;
   width: 100%;
   min-height: 100%;
-  overflow-x: hidden;
-  background: #dbeafe;
+  /* clip, not hidden: hidden turns body into a scroll container and breaks sticky headers */
+  overflow-x: clip;
+  background-color: #f7f6ff;
   color: #0f172a;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-image:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.36), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.34), transparent 34%),
-    linear-gradient(180deg, #dbeafe 0%, #bfdbfe 52%, #93c5fd 100%);
-}
-
-body,
-#__next {
-  width: 100%;
-  overflow-x: hidden;
+    radial-gradient(circle at 0% 0%, rgba(244, 114, 182, 0.14), transparent 34%),
+    radial-gradient(circle at 100% 12%, rgba(56, 189, 248, 0.16), transparent 36%),
+    linear-gradient(180deg, #f8f7ff 0%, #f1f5ff 55%, #eaf2ff 100%);
 }
 
 a {
@@ -66,20 +64,96 @@ video {
   display: block;
 }
 
-.container {
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
+:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-[44px] select-none items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-lg {
+    @apply min-h-[52px] px-7 text-base;
+  }
+
+  .btn-primary {
+    @apply bg-brand text-white shadow-brand hover:brightness-110;
+  }
+
+  .btn-dark {
+    @apply bg-slate-950 text-white shadow-lg hover:bg-slate-800;
+  }
+
+  .btn-secondary {
+    @apply border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50;
+  }
+
+  .btn-ghost {
+    @apply text-slate-700 hover:bg-slate-900/5;
+  }
+
+  /* 16px text keeps iOS Safari from zooming the page when a field is focused */
+  .field {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-950 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-violet-400 focus:ring-4 focus:ring-violet-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+  }
+
+  .field-label {
+    @apply text-sm font-semibold text-slate-800;
+  }
+
+  .surface {
+    @apply rounded-3xl border border-white/80 bg-white/75 shadow-soft backdrop-blur-xl;
+  }
+
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.22em] text-violet-600;
+  }
+
+  .notice {
+    @apply rounded-xl px-4 py-3 text-sm font-semibold;
+  }
+
+  .notice-error {
+    @apply border border-rose-200 bg-rose-50 text-rose-700;
+  }
+
+  .notice-success {
+    @apply border border-emerald-200 bg-emerald-50 text-emerald-800;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Text placed on a memory page keeps the original font so published layouts do not reflow */
+  .scene-text {
+    font-family: Arial, Helvetica, sans-serif;
+  }
 }
 
 .glass {
   backdrop-filter: blur(16px);
-  background: rgba(191, 219, 254, 0.74);
-  border: 1px solid rgba(56, 189, 248, 0.55);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, #f9a8d4 0%, #c4b5fd 50%, #fde68a 100%);
+  background: linear-gradient(90deg, #ec4899 0%, #d946ef 50%, #7c3aed 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

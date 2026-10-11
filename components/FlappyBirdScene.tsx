@@ -338,20 +338,21 @@ export function FlappyBirdScene({
       <div className="absolute right-[11%] top-[33%] h-20 w-20 rounded-full bg-white/90 blur-[1px]" />
       <div className="absolute right-[6%] top-[32%] h-14 w-20 rounded-full bg-white/90 blur-[1px]" />
 
-      <div className="absolute left-1/2 top-5 z-[80] -translate-x-1/2 rounded-full border border-black/10 bg-white/85 px-8 py-4 text-center shadow-lg">
-        <div className="text-xs font-bold uppercase tracking-[0.35em] text-slate-500">
+      {/* Sits below the viewer's scene dots; on phones it moves left to make room for the challenge card */}
+      <div className="absolute left-3 top-16 z-[80] rounded-full border border-black/10 bg-white/85 px-6 py-2 text-center shadow-lg sm:left-1/2 sm:-translate-x-1/2 sm:px-8 sm:py-3">
+        <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-500 sm:text-xs sm:tracking-[0.35em]">
           Score
         </div>
-        <div className="text-4xl font-black text-slate-800">{score}</div>
+        <div className="text-2xl font-black text-slate-800 sm:text-4xl">{score}</div>
       </div>
 
       {/* add this new one */}
       {challengeTarget !== null && challengeTarget > 0 ? (
-        <div className="absolute right-5 top-5 z-[80] rounded-2xl border border-black/10 bg-white/85 px-5 py-3 text-center shadow-lg">
+        <div className="absolute right-3 top-16 z-[80] rounded-2xl border border-black/10 bg-white/85 px-4 py-2 text-center shadow-lg sm:right-5 sm:top-5 sm:px-5 sm:py-3">
           <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-500">
             Challenge
           </div>
-          <div className="text-lg font-black text-slate-800">
+          <div className="text-base font-black text-slate-800 sm:text-lg">
             Pass {challengeTarget} pipes
           </div>
         </div>
@@ -448,8 +449,8 @@ export function FlappyBirdScene({
       </div>
 
       {!started && !gameOver ? (
-        <div className="absolute inset-x-0 top-[14%] z-[75] flex justify-center">
-          <div className="rounded-full bg-black/25 px-6 py-3 text-sm font-semibold text-white shadow-md backdrop-blur-sm">
+        <div className="absolute inset-x-0 top-40 z-[75] flex justify-center px-4 sm:top-44">
+          <div className="max-w-md rounded-3xl bg-black/25 px-5 py-3 text-center text-sm font-semibold text-white shadow-md backdrop-blur-sm">
             Tap the button to flap and pass through the numbered pipes
           </div>
         </div>
@@ -521,11 +522,12 @@ export function FlappyBirdScene({
         </div>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-6 z-[90] flex justify-center px-4">
+      {/* Raised on phones and tablets so the viewer's Previous / Next buttons do not cover it */}
+      <div className="absolute inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[90] flex justify-center px-4 lg:bottom-6">
         <button
           type="button"
           onClick={flap}
-          className="min-w-[220px] rounded-full border border-black/10 bg-[#efe58b] px-10 py-5 text-2xl font-black uppercase tracking-[0.12em] text-black shadow-[0_12px_0_rgba(0,0,0,0.18)] transition active:translate-y-[2px]"
+          className="min-w-[220px] touch-manipulation select-none rounded-full border border-black/10 bg-[#efe58b] px-10 py-4 text-2xl font-black uppercase tracking-[0.12em] text-black shadow-[0_12px_0_rgba(0,0,0,0.18)] transition active:translate-y-[2px] sm:py-5"
         >
           FLAP
         </button>

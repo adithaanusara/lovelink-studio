@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type BookSlotMedia = {
   type: "image" | "video";
@@ -107,11 +107,16 @@ function buildSlotsForLayout(
   return trimmed;
 }
 
-function renderMedia(media: BookSlotMedia | null | undefined, alt: string) {
+function renderMedia(
+  media: BookSlotMedia | null | undefined,
+  alt: string,
+  editable: boolean
+) {
   if (!media?.url) {
+    // The upload hint is for the editor only; people viewing a published album see a blank tile.
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-[0.45rem] bg-[#f3f3ef] text-center text-[11px] font-semibold tracking-[0.18em] text-slate-500">
-        DOUBLE CLICK
+      <div className="flex h-full w-full items-center justify-center rounded-[0.45rem] bg-[#f3f3ef] px-1 text-center text-[11px] font-semibold leading-4 tracking-[0.14em] text-slate-500">
+        {editable ? "DOUBLE CLICK OR TAP TWICE" : null}
       </div>
     );
   }
@@ -162,6 +167,13 @@ function AlbumPage({
   const resolvedLayoutId = resolveLayoutId(page, pageIndex);
   const layout = PAGE_LAYOUTS[resolvedLayoutId];
   const slots = buildSlotsForLayout(page, layout.length);
+  const lastTapRef = useRef<{ slot: number; time: number } | null>(null);
+
+  const requestUpload = (encodedSlotIndex: number) => {
+    if (editable && onUploadPage) {
+      onUploadPage(encodedSlotIndex);
+    }
+  };
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#fbfbf8]">
@@ -197,17 +209,37 @@ function AlbumPage({
               transform: `rotate(${tile.rotate}deg)`,
               cursor: editable ? "pointer" : "default",
             }}
+            onPointerUp={(e) => {
+              // Touch screens have no reliable double-click: two quick taps open the picker.
+              if (e.pointerType === "mouse") return;
+
+              const now = Date.now();
+              const last = lastTapRef.current;
+
+              if (last && last.slot === encodedSlotIndex && now - last.time < 350) {
+                lastTapRef.current = { slot: -1, time: now };
+                requestUpload(encodedSlotIndex);
+                return;
+              }
+
+              lastTapRef.current = { slot: encodedSlotIndex, time: now };
+            }}
             onDoubleClick={(e) => {
               e.stopPropagation();
-              if (editable && onUploadPage) {
-                onUploadPage(encodedSlotIndex);
+
+              const last = lastTapRef.current;
+              const openedByTap = Boolean(last && last.slot === -1 && Date.now() - last.time < 800);
+
+              if (!openedByTap) {
+                requestUpload(encodedSlotIndex);
               }
             }}
           >
             <div className="relative h-full w-full overflow-hidden rounded-[0.5rem] bg-[#f3f3ef]">
               {renderMedia(
                 media,
-                `Album page ${pageIndex + 1} photo ${slotIndex + 1}`
+                `Album page ${pageIndex + 1} photo ${slotIndex + 1}`,
+                editable
               )}
             </div>
           </button>
@@ -440,7 +472,7 @@ export function MemoryBook({
                         }}
                       >
                         <div className="h-20 overflow-hidden rounded-[0.8rem] bg-[#f3f3ef]">
-                          {renderMedia(item, `Album preview ${index + 1}`)}
+                          {renderMedia(item, `Album preview ${index + 1}`, false)}
                         </div>
                       </div>
                     ))
@@ -558,26 +590,35 @@ export function MemoryBook({
         </button>
       </div>
 
-      <div className="mt-4 flex items-center justify-center gap-2">
+      {/* Dots stay small to look at; the button around each one is the finger-sized target. */}
+      <div className="-mb-2 mt-2 flex items-center justify-center">
         <button
           type="button"
           onClick={() => setPage(-1)}
-          className={`h-2.5 w-2.5 rounded-full transition ${
-            activePage < 0 ? "bg-slate-700" : "bg-slate-300"
-          }`}
+          className="flex h-7 w-7 items-center justify-center"
           aria-label="Go to cover"
-        />
+        >
+          <span
+            className={`h-2.5 w-2.5 rounded-full transition ${
+              activePage < 0 ? "bg-slate-700" : "bg-slate-300"
+            }`}
+          />
+        </button>
 
         {spreadDots.map((spreadStart) => (
           <button
             key={spreadStart}
             type="button"
             onClick={() => setPage(spreadStart)}
-            className={`h-2.5 w-2.5 rounded-full transition ${
-              activePage === spreadStart ? "bg-slate-700" : "bg-slate-300"
-            }`}
+            className="flex h-7 w-7 items-center justify-center"
             aria-label={`Go to spread ${spreadStart + 1}`}
-          />
+          >
+            <span
+              className={`h-2.5 w-2.5 rounded-full transition ${
+                activePage === spreadStart ? "bg-slate-700" : "bg-slate-300"
+              }`}
+            />
+          </button>
         ))}
       </div>
     </div>
