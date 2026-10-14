@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Music4 } from "lucide-react";
 import { StorySceneViewer } from "@/components/StorySceneViewer";
 import { BookPageMedia } from "@/components/MemoryBook";
+import { StageSize } from "@/lib/stage";
 
 type AnimationType =
   | "none"
@@ -67,6 +68,7 @@ export default async function MemoryPage({
     | {
         animation?: AnimationType;
         storyScenes?: StoryScene[];
+        stage?: StageSize;
       }
     | null;
 
@@ -78,7 +80,7 @@ export default async function MemoryPage({
   return (
     <main className="min-h-screen w-full overflow-x-hidden text-slate-900">
       {storyScenes && storyScenes.length > 0 ? (
-        <StorySceneViewer scenes={storyScenes} animation={animation} />
+        <StorySceneViewer scenes={storyScenes} animation={animation} stage={layout?.stage} />
       ) : (
         <section className="mx-auto flex min-h-screen max-w-[1400px] items-center justify-center px-4 text-center">
           <div className="surface p-8 text-slate-700 sm:p-10">

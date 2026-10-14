@@ -17,7 +17,8 @@ import {
   X,
 } from "lucide-react";
 import { editorTemplates, EditorItem, EditorTemplate } from "@/lib/templates";
-import { DESIGN_WIDTH, LayoutEditor, STAGE_HEIGHT } from "@/components/LayoutEditor";
+import { LayoutEditor } from "@/components/LayoutEditor";
+import { STAGE_HEIGHT, STAGE_WIDTH } from "@/lib/stage";
 import { BookPageMedia } from "@/components/MemoryBook";
 import { Logo } from "@/components/Logo";
 
@@ -604,6 +605,9 @@ export function AdvancedCreateForm() {
             items: scenes[0]?.items ?? [],
             animation,
             storyScenes: scenes,
+            // The canvas size the scenes were laid out on; the published page scales this
+            // same canvas, which keeps every item where it was placed.
+            stage: { width: STAGE_WIDTH, height: STAGE_HEIGHT },
           },
         }),
       });
@@ -889,7 +893,13 @@ export function AdvancedCreateForm() {
         <div className="grid flex-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           {/* On upright phones and tablets the canvas stays pinned under the top bar, so changes
               made with the tools below are visible as you make them. Zooming in releases it. */}
-          <div className="surface min-w-0 p-3 max-lg:bg-white/95 max-lg:portrait:sticky max-lg:portrait:top-[4.5rem] max-lg:portrait:z-30 max-lg:portrait:has-[[data-zoomed=true]]:static sm:p-4">
+          <div
+            className={`surface min-w-0 p-3 max-lg:bg-white/95 sm:p-4 ${
+              isGameScene || isPuzzleScene
+                ? ""
+                : "max-lg:portrait:sticky max-lg:portrait:top-[4.5rem] max-lg:portrait:z-30 max-lg:portrait:has-[[data-zoomed=true]]:static"
+            }`}
+          >
             <LayoutEditor
               key={activeScene.id}
               items={items}
@@ -1176,7 +1186,7 @@ export function AdvancedCreateForm() {
                         <input
                           type="range"
                           min={0}
-                          max={Math.max(DESIGN_WIDTH - selected.w, selected.x)}
+                          max={Math.max(STAGE_WIDTH - selected.w, selected.x)}
                           value={Math.round(selected.x)}
                           onChange={(e) =>
                             updateItem(selected.id, { x: Number(e.target.value) })
@@ -1204,7 +1214,7 @@ export function AdvancedCreateForm() {
                         <input
                           type="range"
                           min={Math.min(120, selected.w)}
-                          max={Math.max(DESIGN_WIDTH - selected.x, selected.w)}
+                          max={Math.max(STAGE_WIDTH - selected.x, selected.w)}
                           value={Math.round(selected.w)}
                           onChange={(e) =>
                             updateItem(selected.id, { w: Number(e.target.value) })
