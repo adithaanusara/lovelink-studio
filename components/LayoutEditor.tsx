@@ -6,6 +6,7 @@ import { EditorItem } from "@/lib/templates";
 import { MemoryBook, BookPageMedia } from "@/components/MemoryBook";
 import { FlappyBirdScene } from "@/components/FlappyBirdScene";
 import { PuzzleGameScene } from "@/components/PuzzleGameScene";
+import { STAGE_HEIGHT, STAGE_WIDTH } from "@/lib/stage";
 
 type AnimationType =
   | "none"
@@ -116,10 +117,6 @@ type BackgroundPanState =
     }
   | null;
 
-// Scenes are laid out in pixels. Below this width the canvas keeps the design size and is
-// scaled down to fit, so narrow screens show the whole scene instead of its left edge.
-export const DESIGN_WIDTH = 1000;
-export const STAGE_HEIGHT = 760;
 const DOUBLE_TAP_MS = 350;
 
 function clamp(value: number, min: number, max: number) {
@@ -646,9 +643,11 @@ export function LayoutEditor({
     useState<BackgroundPanState>(null);
   const [isBackgroundMoveMode, setIsBackgroundMoveMode] = useState(false);
 
-  const fitsDesign = frameWidth === null || frameWidth >= DESIGN_WIDTH;
-  const fitScale = fitsDesign ? 1 : (frameWidth as number) / DESIGN_WIDTH;
-  const scale = zoomed ? Math.min(1, fitScale * 2) : fitScale;
+  // The canvas is always STAGE_WIDTH x STAGE_HEIGHT and only scaled to the space available.
+  // The published page draws the same canvas, so what is placed here is what people see.
+  const fitScale = frameWidth === null ? 1 : frameWidth / STAGE_WIDTH;
+  const canZoom = fitScale < 0.75;
+  const scale = zoomed && canZoom ? Math.min(1, fitScale * 2) : fitScale;
 
   const updateItem = (id: string, patch: Partial<EditorItem>) => {
     onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -852,7 +851,7 @@ export function LayoutEditor({
     return (
       <div
         ref={containerRef}
-        className="relative isolate z-0 mx-auto h-[min(760px,82svh)] min-h-[520px] w-full overflow-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem]"
+        className="relative isolate z-0 mx-auto h-[min(520px,60svh)] min-h-[380px] w-full overflow-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem] lg:h-[min(760px,82svh)] lg:min-h-[520px]"
       >
         <FlappyBirdScene />
       </div>
@@ -863,9 +862,10 @@ export function LayoutEditor({
     return (
       <div
         ref={containerRef}
-        className="relative isolate z-0 mx-auto h-[min(760px,82svh)] min-h-[520px] w-full overflow-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem]"
+        className="relative isolate z-0 mx-auto h-[min(520px,60svh)] min-h-[380px] w-full overflow-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem] lg:h-[min(760px,82svh)] lg:min-h-[520px]"
       >
         <PuzzleGameScene
+          reserveNavSpace={false}
           imageUrl={puzzleImage}
           timeLimitSeconds={puzzleTimeLimit}
         />
@@ -874,12 +874,12 @@ export function LayoutEditor({
   }
 
   // Handles and hints are drawn inside the scaled canvas, so grow them back to a usable size.
-  const handleSize = scale === 1 ? 24 : Math.min(120, Math.round(32 / scale));
+  const handleSize = Math.min(120, Math.round((canZoom ? 32 : 24) / scale));
   const outlineWidth = Math.min(6, 2 / scale);
   const hintFontSize = Math.min(34, Math.round(14 / scale));
 
   return (
-    <div data-zoomed={zoomed && !fitsDesign ? "true" : undefined}>
+    <div data-zoomed={zoomed && canZoom ? "true" : undefined}>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 sm:mb-3">
         <p className="hidden text-xs font-medium leading-5 text-slate-500 sm:block">
           Drag to move, pull the pink corner to resize.
@@ -900,7 +900,7 @@ export function LayoutEditor({
             </button>
           ) : null}
 
-          {!fitsDesign ? (
+          {canZoom ? (
             <button
               type="button"
               onClick={() => setZoomed((prev) => !prev)}
@@ -917,7 +917,7 @@ export function LayoutEditor({
       <div
         ref={frameRef}
         className={`relative w-full overflow-y-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem] ${
-          zoomed ? "overflow-x-auto" : "overflow-x-hidden"
+          zoomed && canZoom ? "overflow-x-auto" : "overflow-x-hidden"
         }`}
         style={{ height: Math.round(STAGE_HEIGHT * scale) }}
       >
@@ -926,7 +926,7 @@ export function LayoutEditor({
           className="relative isolate z-0 overflow-hidden"
           style={{
             background,
-            width: fitsDesign ? "100%" : DESIGN_WIDTH,
+            width: STAGE_WIDTH,
             height: STAGE_HEIGHT,
             transform: scale === 1 ? undefined : `scale(${scale})`,
             transformOrigin: "top left",
@@ -964,9 +964,12 @@ export function LayoutEditor({
                   });
                 }}
               />
-              <div className="pointer-events-none absolute inset-0 z-0 bg-slate-950/40" />
+              <div className="pointer-events-none absolute inset-0 z-0 bg-slate-950/45" />
             </>
           ) : null}
+
+          {/* Same light dimming the published page applies, so colours match */}
+          <div className="pointer-events-none absolute inset-0 z-0 bg-black/10" />
 
           {animation === "falling-hearts" ? <FallingDecorLayer type="falling-hearts" /> : null}
           {animation === "falling-petals" ? <FallingDecorLayer type="falling-petals" /> : null}
