@@ -451,7 +451,7 @@ export function MemoryBook({
                   <p className="text-xs font-semibold uppercase tracking-[0.45em] text-slate-400">
                     photo album
                   </p>
-                  <h3 className="mt-5 text-3xl font-black leading-tight text-slate-800 md:text-4xl">
+                  <h3 className="mt-5 text-4xl font-black leading-tight text-slate-800">
                     {title}
                   </h3>
                   <p className="mt-4 max-w-[280px] text-sm leading-7 text-slate-500">

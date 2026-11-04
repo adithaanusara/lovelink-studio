@@ -17,7 +17,8 @@ import {
   X,
 } from "lucide-react";
 import { editorTemplates, EditorItem, EditorTemplate } from "@/lib/templates";
-import { DESIGN_WIDTH, LayoutEditor, STAGE_HEIGHT } from "@/components/LayoutEditor";
+import { LayoutEditor } from "@/components/LayoutEditor";
+import { DESIGN_WIDTH, STAGE_HEIGHT } from "@/lib/stage";
 import { BookPageMedia } from "@/components/MemoryBook";
 import { Logo } from "@/components/Logo";
 
