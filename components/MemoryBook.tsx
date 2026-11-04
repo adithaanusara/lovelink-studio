@@ -396,17 +396,6 @@ export function MemoryBook({
         }
       `}</style>
 
-      <div className="mb-3 flex items-center justify-between rounded-full border border-slate-200 bg-white/95 px-4 py-2 text-xs text-slate-600 shadow-sm">
-        <span className="tracking-[0.28em] uppercase">Album</span>
-        <span>
-          {activePage < 0
-            ? "Cover"
-            : `Page ${leftIndex + 1}${
-                leftIndex + 1 < pageCount ? ` - ${rightIndex + 1}` : ""
-              } / ${pageCount}`}
-        </span>
-      </div>
-
       <div
   className="relative mx-auto w-full"
   style={{
@@ -451,7 +440,7 @@ export function MemoryBook({
                   <p className="text-xs font-semibold uppercase tracking-[0.45em] text-slate-400">
                     photo album
                   </p>
-                  <h3 className="mt-5 text-3xl font-black leading-tight text-slate-800 md:text-4xl">
+                  <h3 className="mt-5 text-4xl font-black leading-tight text-slate-800">
                     {title}
                   </h3>
                   <p className="mt-4 max-w-[280px] text-sm leading-7 text-slate-500">
@@ -576,7 +565,7 @@ export function MemoryBook({
         <button
           type="button"
           onClick={flipPrev}
-          className="absolute left-2 top-1/2 z-40 -translate-y-1/2 rounded-full border border-slate-200 bg-white/92 px-4 py-3 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600 shadow-md transition hover:bg-white"
+          className="absolute left-2 top-1/2 z-40 -translate-y-1/2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.2em] text-slate-800 shadow-lg transition hover:bg-slate-100"
         >
           Prev
         </button>
@@ -584,7 +573,7 @@ export function MemoryBook({
         <button
           type="button"
           onClick={flipNext}
-          className="absolute right-2 top-1/2 z-40 -translate-y-1/2 rounded-full border border-slate-200 bg-white/92 px-4 py-3 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600 shadow-md transition hover:bg-white"
+          className="absolute right-2 top-1/2 z-40 -translate-y-1/2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.2em] text-slate-800 shadow-lg transition hover:bg-slate-100"
         >
           Next
         </button>

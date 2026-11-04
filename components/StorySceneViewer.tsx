@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MemoryBook, BookPageMedia } from "@/components/MemoryBook";
 import { FlappyBirdScene } from "@/components/FlappyBirdScene";
 import { PuzzleGameScene } from "@/components/PuzzleGameScene";
+import { fitStage, getStageSize } from "@/lib/stage";
 
 type AnimationType =
   | "none"
@@ -542,16 +543,6 @@ function SparkleHeartsLayer() {
     </div>
   );
 }
-const DESIGN_WIDTH = 1400;
-const DESIGN_HEIGHT = 900;
-
-function toXPercent(value: number) {
-  return `${(value / DESIGN_WIDTH) * 100}%`;
-}
-
-function toYPercent(value: number) {
-  return `${(value / DESIGN_HEIGHT) * 100}%`;
-}
 
 export function StorySceneViewer({
   scenes,
@@ -568,23 +559,22 @@ export function StorySceneViewer({
 
   const scene = scenes[activeIndex] ?? scenes[0];
   const swipeStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const [viewportWidth, setViewportWidth] = useState(390);
-  const [viewportHeight, setViewportHeight] = useState(844);
+  const screenRef = useRef<HTMLElement | null>(null);
+  const [screenSize, setScreenSize] = useState<{ width: number; height: number } | null>(null);
 
-  useEffect(() => {
-    const updateViewportWidth = () => {
-      setViewportWidth(window.innerWidth);
-      setViewportHeight(window.innerHeight);
-    };
+  useLayoutEffect(() => {
+    const screen = screenRef.current;
+    if (!screen) return;
 
-    updateViewportWidth();
-    window.addEventListener("resize", updateViewportWidth);
+    const measure = () =>
+      setScreenSize({ width: screen.clientWidth, height: screen.clientHeight });
+    measure();
 
-    return () => window.removeEventListener("resize", updateViewportWidth);
+    const observer = new ResizeObserver(measure);
+    observer.observe(screen);
+
+    return () => observer.disconnect();
   }, []);
-
-  const mobileBookWidth = Math.min(viewportWidth - 24, 360);
-  const mobileBookHeight = Math.round(mobileBookWidth * 1.12);
 
   useEffect(() => {
     if (!scenes.length) return;
@@ -646,32 +636,23 @@ export function StorySceneViewer({
       ? sceneBookPages[scene.id]
       : (scene.book?.currentPage ?? -1);
 
-  // Tablet and desktop scenes use the editor's pixel positions. When the screen is smaller
-  // than the area the content covers, shrink the whole layout to fit instead of cutting it
-  // off. Screens that already fit keep a scale of 1, so those pages look exactly as before.
-  const visibleItems = scene.items.filter((item) =>
-    item.type === "text" ? Boolean(item.content) : Boolean(item.src),
-  );
-  const contentRight = Math.max(
-    0,
-    ...visibleItems.map((item) => item.x + item.w),
-    scene.book?.enabled ? scene.book.x + scene.book.w : 0,
-  );
-  const contentBottom = Math.max(
-    0,
-    ...visibleItems.map((item) => item.y + item.h),
-    // The album draws a header above its pages and page dots below them.
-    scene.book?.enabled ? scene.book.y + scene.book.h + 110 : 0,
-  );
-  const stageScale = Math.min(
-    1,
-    contentRight > 0 ? (viewportWidth - 16) / contentRight : 1,
-    contentBottom > 0 ? (viewportHeight - 16) / contentBottom : 1,
-  );
-  const stageStyle =
-    stageScale < 1
-      ? { transform: `scale(${stageScale})`, transformOrigin: "top left" }
-      : undefined;
+  // Every screen shows the editor's stage as one scaled block, so nothing moves relative to
+  // the design. It waits for the first measurement to avoid a flash at the wrong size.
+  const stageSize = getStageSize(scene.items, scene.book);
+  const stageFit = screenSize ? fitStage(screenSize, stageSize) : null;
+  const stageStyle = stageFit
+    ? {
+        left: stageFit.left,
+        top: stageFit.top,
+        width: stageSize.width,
+        height: stageSize.height,
+        transform: `scale(${stageFit.scale})`,
+        transformOrigin: "top left",
+      }
+    : undefined;
+  const backgroundPosition = `${scene.backgroundPositionX ?? 50}% ${
+    scene.backgroundPositionY ?? 50
+  }%`;
 
   // Phones: a sideways swipe moves between scenes. Left out on the two game scenes and on
   // the album, where a finger moving across the screen is part of using them.
@@ -679,6 +660,7 @@ export function StorySceneViewer({
 
   return (
     <section
+      ref={screenRef}
       className="relative h-[100svh] w-full overflow-hidden"
       style={{ background: scene.background }}
       onTouchStart={(e) => {
@@ -756,24 +738,34 @@ export function StorySceneViewer({
               />
             ) : (
               <>
+                {/* A screen shaped differently from the stage shows a soft copy of the photo
+                    around it, so the sharp photo keeps the crop chosen in the editor. */}
                 {scene.backgroundImage ? (
-                  <>
+                  <img
+                    src={scene.backgroundImage}
+                    alt=""
+                    className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
+                    style={{ objectPosition: backgroundPosition }}
+                  />
+                ) : null}
+
+                {scene.backgroundImage && stageStyle ? (
+                  <div className="absolute overflow-hidden" style={stageStyle}>
                     <motion.img
                       src={scene.backgroundImage}
                       alt={`${scene.name} background`}
                       className="absolute inset-0 h-full w-full object-cover"
-                      style={{
-                        objectPosition: `${scene.backgroundPositionX ?? 50}% ${
-                          scene.backgroundPositionY ?? 75
-                        }%`,
-                      }}
+                      style={{ objectPosition: backgroundPosition }}
                       initial={{ scale: 1.08, opacity: 0.7 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.96, opacity: 0.65 }}
                       transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
                     />
-                    <div className="absolute inset-0 bg-slate-950/45" />
-                  </>
+                  </div>
+                ) : null}
+
+                {scene.backgroundImage ? (
+                  <div className="absolute inset-0 bg-slate-950/40" />
                 ) : null}
 
                 {animation === "falling-hearts" ? (
@@ -788,217 +780,91 @@ export function StorySceneViewer({
                   <SparkleHeartsLayer />
                 ) : null}
 
-                {scene.book?.enabled ? (
-                  <>
-                    {/* Desktop / tablet album */}
-                    <div
-                      className="absolute inset-0 z-[70] hidden sm:block"
-                      style={stageStyle}
-                    >
-                    <motion.div
-                      data-no-swipe
-                      className="absolute"
-                      style={{
-                        left: scene.book.x,
-                        top: scene.book.y,
-                        width: scene.book.w,
-                      }}
-                      initial={{ opacity: 0, y: 28, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -18, scale: 0.96 }}
-                      transition={{ duration: 0.65, delay: 0.12 }}
-                    >
-                      <MemoryBook
-                        pageCount={scene.book.pageCount}
-                        pages={scene.book.pages}
-                        currentPage={currentBookPage}
-                        onCurrentPageChange={(page) =>
-                          handleBookPageChange(scene.id, page)
-                        }
-                        width={scene.book.w}
-                        height={scene.book.h}
-                        coverImage={
-                          scene.book.coverImage || scene.backgroundImage
-                        }
-                        coverPositionX={scene.book.coverPositionX ?? 50}
-                        coverPositionY={scene.book.coverPositionY ?? 50}
-                        title={
-                          scene.book.title || `${scene.name} Memory Book`
-                        }
-                      />
-                    </motion.div>
-                    </div>
-
-
-{/* Mobile album - full screen */}
-<motion.div
-data-no-swipe
-className="absolute inset-x-0 top-[170px] bottom-[70px] z-[80] flex items-center justify-center px-3 sm:hidden"  initial={{ opacity: 0, y: 24, scale: 0.96 }}
-  animate={{ opacity: 1, y: 0, scale: 1 }}
-  exit={{ opacity: 0, y: -18, scale: 0.96 }}
-  transition={{ duration: 0.65, delay: 0.12 }}
->
-  <MemoryBook
-    pageCount={scene.book.pageCount}
-    pages={scene.book.pages}
-    currentPage={currentBookPage}
-    onCurrentPageChange={(page) =>
-      handleBookPageChange(scene.id, page)
-    }
-    width={mobileBookWidth}
-    height={mobileBookHeight}
-    coverImage={scene.book.coverImage || scene.backgroundImage}
-    coverPositionX={scene.book.coverPositionX ?? 50}
-    coverPositionY={scene.book.coverPositionY ?? 50}
-    title={scene.book.title || `${scene.name} Memory Book`}
-  />
-</motion.div>
-                  </>
-                ) : null}
-
-                <div className="absolute inset-0 bg-black/10" />
-
-                {/* Desktop / tablet layout */}
-                <div
-                  className="absolute inset-0 z-[20] hidden sm:block"
-                  style={stageStyle}
-                >
-                  {scene.items.map((item, index) => (
-                    <motion.div
-                      key={item.id}
-                      className="absolute"
-                      style={{
-                        left: item.x,
-                        top: item.y,
-                        width: item.w,
-                        height: item.h,
-                        zIndex: (item.z ?? 1) + 20,
-                      }}
-                      initial={{
-                        opacity: 0,
-                        y: 26,
-                        scale: 0.97,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                        scale: 1,
-                      }}
-                      exit={{
-                        opacity: 0,
-                        y: -20,
-                        scale: 0.97,
-                      }}
-                      transition={{
-                        duration: 0.45,
-                        delay: 0.12 + index * 0.05,
-                      }}
-                    >
-                      {item.type === "text" ? (
-                        <div
-                          className="scene-text whitespace-pre-wrap"
+                {stageStyle ? (
+                  <div className="absolute z-[20] overflow-hidden" style={stageStyle}>
+                    <div className="absolute inset-0 z-[1]">
+                      {scene.items.map((item, index) => (
+                        <motion.div
+                          key={item.id}
+                          className={`absolute ${item.type === "image" ? "overflow-hidden" : ""}`}
                           style={{
-                            color: item.color || "#fff",
-                            fontSize: item.fontSize || 24,
-                            fontWeight: item.fontWeight || 700,
-                            textShadow: "0 6px 30px rgba(0,0,0,0.35)",
+                            left: item.x,
+                            top: item.y,
+                            width: item.w,
+                            height: item.h,
+                            zIndex: item.z ?? 1,
+                          }}
+                          initial={{ opacity: 0, y: 26, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -20, scale: 0.97 }}
+                          transition={{
+                            duration: 0.45,
+                            delay: 0.12 + index * 0.05,
                           }}
                         >
-                          {item.content}
-                        </div>
-                      ) : item.src ? (
-                        <img
-                          src={item.src}
-                          alt="Story memory"
-                          className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
-                          style={{
-                            objectPosition: `${item.imagePositionX ?? 50}% ${
-                              item.imagePositionY ?? 65
-                            }%`,
-                          }}
+                          {item.type === "text" ? (
+                            <div
+                              className="scene-text h-full w-full whitespace-pre-wrap rounded-2xl px-2 py-1"
+                              style={{
+                                color: item.color ?? "#ffffff",
+                                fontSize: item.fontSize ?? 24,
+                                fontWeight: item.fontWeight ?? 700,
+                                textShadow: "0 6px 30px rgba(0,0,0,0.35)",
+                              }}
+                            >
+                              {item.content}
+                            </div>
+                          ) : item.src ? (
+                            <img
+                              src={item.src}
+                              alt="Story memory"
+                              className="h-full w-full rounded-[1.75rem] object-cover shadow-2xl"
+                              style={{
+                                objectPosition: `${item.imagePositionX ?? 50}% ${
+                                  item.imagePositionY ?? 50
+                                }%`,
+                              }}
+                            />
+                          ) : null}
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {scene.book?.enabled ? (
+                      <motion.div
+                        data-no-swipe
+                        className="absolute z-[2]"
+                        style={{
+                          left: scene.book.x,
+                          top: scene.book.y,
+                          width: scene.book.w,
+                          height: scene.book.h,
+                        }}
+                        initial={{ opacity: 0, y: 28, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -18, scale: 0.96 }}
+                        transition={{ duration: 0.65, delay: 0.12 }}
+                      >
+                        <MemoryBook
+                          pageCount={scene.book.pageCount}
+                          pages={scene.book.pages}
+                          currentPage={currentBookPage}
+                          onCurrentPageChange={(page) =>
+                            handleBookPageChange(scene.id, page)
+                          }
+                          width={scene.book.w}
+                          height={scene.book.h}
+                          coverImage={
+                            scene.book.coverImage || scene.backgroundImage
+                          }
+                          coverPositionX={scene.book.coverPositionX ?? 50}
+                          coverPositionY={scene.book.coverPositionY ?? 50}
+                          title={scene.book.title}
                         />
-                      ) : null}
-                    </motion.div>
-                  ))}
-                </div>
-
-               
-{/* Mobile layout - use editor positions */}
-{!scene.book?.enabled ? (
-  <div className="absolute inset-0 z-[40] sm:hidden">
-    {scene.items.map((item, index) => {
-      const isText = item.type === "text";
-
-      return (
-        <motion.div
-          key={`mobile-${item.id}`}
-          className="absolute"
-          style={{
-            left: `${(item.x / 1400) * 100}%`,
-            top: `${(item.y / 900) * 100}%`,
-            width: isText
-              ? `min(${(item.w / 1400) * 100}%, calc(100vw - 32px))`
-              : `min(${(item.w / 1400) * 100}%, 280px)`,
-            height: isText ? "auto" : `${(item.h / 900) * 100}%`,
-            zIndex: (item.z ?? 1) + 20,
-            transform:
-              item.x > 700
-                ? "translateX(-50%)"
-                : "none",
-          }}
-          initial={{
-            opacity: 0,
-            y: 18,
-            scale: 0.97,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-            scale: 1,
-          }}
-          exit={{
-            opacity: 0,
-            y: -18,
-            scale: 0.97,
-          }}
-          transition={{
-            duration: 0.45,
-            delay: 0.12 + index * 0.05,
-          }}
-        >
-          {item.type === "text" ? (
-            <div
-              className="scene-text whitespace-pre-wrap break-words text-center leading-tight"
-              style={{
-                color: item.color || "#fff",
-                fontSize: `clamp(22px, ${
-                  ((item.fontSize || 28) / 1400) * 100
-                }vw, ${Math.min(item.fontSize || 28, 42)}px)`,
-                fontWeight: item.fontWeight || 700,
-                textShadow: "0 6px 30px rgba(0,0,0,0.45)",
-                overflowWrap: "anywhere",
-                wordBreak: "break-word",
-              }}
-            >
-              {item.content}
-            </div>
-          ) : item.src ? (
-            <img
-              src={item.src}
-              alt="Story memory"
-              className="h-full w-full rounded-[1.25rem] object-cover shadow-2xl"
-              style={{
-                objectPosition: `${item.imagePositionX ?? 50}% ${
-                  item.imagePositionY ?? 65
-                }%`,
-              }}
-            />
-          ) : null}
-        </motion.div>
-      );
-    })}
-  </div>
-) : null}
+                      </motion.div>
+                    ) : null}
+                  </div>
+                ) : null}
               </>
             )}
           </div>

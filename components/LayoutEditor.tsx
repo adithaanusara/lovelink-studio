@@ -6,6 +6,7 @@ import { EditorItem } from "@/lib/templates";
 import { MemoryBook, BookPageMedia } from "@/components/MemoryBook";
 import { FlappyBirdScene } from "@/components/FlappyBirdScene";
 import { PuzzleGameScene } from "@/components/PuzzleGameScene";
+import { DESIGN_WIDTH, STAGE_HEIGHT } from "@/lib/stage";
 
 type AnimationType =
   | "none"
@@ -116,10 +117,6 @@ type BackgroundPanState =
     }
   | null;
 
-// Scenes are laid out in pixels. Below this width the canvas keeps the design size and is
-// scaled down to fit, so narrow screens show the whole scene instead of its left edge.
-export const DESIGN_WIDTH = 1000;
-export const STAGE_HEIGHT = 760;
 const DOUBLE_TAP_MS = 350;
 
 function clamp(value: number, min: number, max: number) {
@@ -646,6 +643,7 @@ export function LayoutEditor({
     useState<BackgroundPanState>(null);
   const [isBackgroundMoveMode, setIsBackgroundMoveMode] = useState(false);
 
+  // The canvas is always the design size, scaled down on narrow screens to show all of it.
   const fitsDesign = frameWidth === null || frameWidth >= DESIGN_WIDTH;
   const fitScale = fitsDesign ? 1 : (frameWidth as number) / DESIGN_WIDTH;
   const scale = zoomed ? Math.min(1, fitScale * 2) : fitScale;
@@ -916,17 +914,21 @@ export function LayoutEditor({
 
       <div
         ref={frameRef}
-        className={`relative w-full overflow-y-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem] ${
+        className={`relative mx-auto w-full overflow-y-hidden rounded-[1.25rem] border border-white/10 bg-slate-950 sm:rounded-[2rem] ${
           zoomed ? "overflow-x-auto" : "overflow-x-hidden"
         }`}
-        style={{ height: Math.round(STAGE_HEIGHT * scale) }}
+        style={{
+          // The extra 2px is the frame's border, so the canvas gets the full design width.
+          maxWidth: DESIGN_WIDTH + 2,
+          height: Math.round(STAGE_HEIGHT * scale),
+        }}
       >
         <div
           ref={containerRef}
           className="relative isolate z-0 overflow-hidden"
           style={{
             background,
-            width: fitsDesign ? "100%" : DESIGN_WIDTH,
+            width: DESIGN_WIDTH,
             height: STAGE_HEIGHT,
             transform: scale === 1 ? undefined : `scale(${scale})`,
             transformOrigin: "top left",
