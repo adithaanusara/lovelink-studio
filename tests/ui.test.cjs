@@ -46,5 +46,5 @@ test("the stage only grows for content saved outside the design area", () => {
   assert.deepEqual(getStageSize([text, emptySlot]), { width: DESIGN_WIDTH, height: STAGE_HEIGHT });
   assert.deepEqual(getStageSize([text, wide]), { width: 1400, height: 900 });
   assert.deepEqual(getStageSize([], { enabled: true, x: 170, y: 180, w: 760, h: 460 }), { width: DESIGN_WIDTH, height: STAGE_HEIGHT });
-  assert.equal(getStageSize([], { enabled: true, x: 170, y: 300, w: 760, h: 460 }).height, 870);
+  assert.equal(getStageSize([], { enabled: true, x: 170, y: 300, w: 760, h: 460 }).height, 808);
 });

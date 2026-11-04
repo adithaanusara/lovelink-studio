@@ -4,8 +4,8 @@
 export const DESIGN_WIDTH = 1000;
 export const STAGE_HEIGHT = 760;
 
-// The album draws a header above its pages and page dots below them, past its own height.
-const BOOK_OVERHANG = 110;
+// The album draws its page dots below its pages, past its own height.
+const BOOK_OVERHANG = 48;
 
 type StageItem = {
   type: "text" | "image";
